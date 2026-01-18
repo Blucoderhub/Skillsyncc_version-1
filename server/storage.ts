@@ -2,8 +2,9 @@ import { db } from "./db";
 import { 
   problems, submissions, userProgress, hackathons, tutorials, lessons,
   discussions, answers, votes, badges, userBadges, dailyChallenges, userLessonProgress,
+  users,
   type Problem, type Submission, type UserProgress, type Hackathon, type Tutorial, type Lesson,
-  type Discussion, type Answer, type Badge, type UserBadge,
+  type Discussion, type Answer, type Badge, type UserBadge, type User,
   type InsertSubmission, type InsertDiscussion, type InsertAnswer
 } from "@shared/schema";
 import { eq, desc, sql, and, like, or } from "drizzle-orm";
@@ -368,6 +369,96 @@ export class DatabaseStorage implements IStorage {
   async seedBadges(badgesData: any[]): Promise<void> {
     if ((await this.getAllBadges()).length > 0) return;
     await db.insert(badges).values(badgesData);
+  }
+
+  // --- ADMIN METHODS ---
+  
+  async getUser(userId: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, userId));
+    return user;
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users).orderBy(desc(users.createdAt));
+  }
+
+  async updateUserAdmin(userId: string, isAdmin: boolean): Promise<void> {
+    await db.update(users).set({ isAdmin }).where(eq(users.id, userId));
+  }
+
+  async getAllUserSubmissions(userId: string): Promise<Submission[]> {
+    return await db.select().from(submissions).where(eq(submissions.userId, userId)).orderBy(desc(submissions.createdAt));
+  }
+
+  async getAllSubmissions(): Promise<Submission[]> {
+    return await db.select().from(submissions).orderBy(desc(submissions.createdAt));
+  }
+
+  async getSubmissionById(id: number): Promise<Submission | undefined> {
+    const [submission] = await db.select().from(submissions).where(eq(submissions.id, id));
+    return submission;
+  }
+
+  async createTutorial(data: any): Promise<Tutorial> {
+    const [tutorial] = await db.insert(tutorials).values(data).returning();
+    return tutorial;
+  }
+
+  async updateTutorial(id: number, data: any): Promise<Tutorial> {
+    const [tutorial] = await db.update(tutorials).set(data).where(eq(tutorials.id, id)).returning();
+    return tutorial;
+  }
+
+  async deleteTutorial(id: number): Promise<void> {
+    await db.delete(lessons).where(eq(lessons.tutorialId, id));
+    await db.delete(tutorials).where(eq(tutorials.id, id));
+  }
+
+  async getLessonsByTutorial(tutorialId: number): Promise<Lesson[]> {
+    return await db.select().from(lessons).where(eq(lessons.tutorialId, tutorialId)).orderBy(lessons.order);
+  }
+
+  async createLesson(data: any): Promise<Lesson> {
+    const [lesson] = await db.insert(lessons).values(data).returning();
+    return lesson;
+  }
+
+  async updateLesson(id: number, data: any): Promise<Lesson> {
+    const [lesson] = await db.update(lessons).set(data).where(eq(lessons.id, id)).returning();
+    return lesson;
+  }
+
+  async deleteLesson(id: number): Promise<void> {
+    await db.delete(lessons).where(eq(lessons.id, id));
+  }
+
+  async createHackathon(data: any): Promise<Hackathon> {
+    const [hackathon] = await db.insert(hackathons).values(data).returning();
+    return hackathon;
+  }
+
+  async updateHackathon(id: number, data: any): Promise<Hackathon> {
+    const [hackathon] = await db.update(hackathons).set(data).where(eq(hackathons.id, id)).returning();
+    return hackathon;
+  }
+
+  async deleteHackathon(id: number): Promise<void> {
+    await db.delete(hackathons).where(eq(hackathons.id, id));
+  }
+
+  async createProblem(data: any): Promise<Problem> {
+    const [problem] = await db.insert(problems).values(data).returning();
+    return problem;
+  }
+
+  async updateProblem(id: number, data: any): Promise<Problem> {
+    const [problem] = await db.update(problems).set(data).where(eq(problems.id, id)).returning();
+    return problem;
+  }
+
+  async deleteProblem(id: number): Promise<void> {
+    await db.delete(submissions).where(eq(submissions.problemId, id));
+    await db.delete(problems).where(eq(problems.id, id));
   }
 }
 

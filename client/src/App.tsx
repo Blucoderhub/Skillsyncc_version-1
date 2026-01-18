@@ -20,6 +20,7 @@ import Discussions from "@/pages/Discussions";
 import DiscussionDetail from "@/pages/DiscussionDetail";
 import Leaderboard from "@/pages/Leaderboard";
 import Profile from "@/pages/Profile";
+import Admin from "@/pages/Admin";
 import NotFound from "@/pages/not-found";
 
 // Protected Route Wrapper
@@ -105,6 +106,10 @@ function Router() {
 
       <Route path="/profile">
         <ProtectedRoute component={Profile} />
+      </Route>
+
+      <Route path="/admin">
+        <ProtectedRoute component={Admin} />
       </Route>
 
       <Route component={NotFound} />

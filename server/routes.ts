@@ -6,6 +6,7 @@ import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integra
 import { registerChatRoutes } from "./replit_integrations/chat";
 import { registerImageRoutes } from "./replit_integrations/image";
 import { registerAudioRoutes } from "./replit_integrations/audio";
+import { registerAdminRoutes } from "./admin-routes";
 import { z } from "zod";
 
 export async function registerRoutes(
@@ -20,6 +21,9 @@ export async function registerRoutes(
   registerChatRoutes(app);
   registerImageRoutes(app);
   registerAudioRoutes(app);
+  
+  // 3. Setup Admin Routes
+  registerAdminRoutes(app);
 
   // 3. Application Routes
 
@@ -67,7 +71,7 @@ export async function registerRoutes(
 
   // Submit Code
   app.post(api.problems.submit.path, isAuthenticated, async (req, res) => {
-    const problemId = parseInt(req.params.id);
+    const problemId = parseInt(req.params.id as string);
     const userId = (req.user as any).claims.sub;
     const { code, language } = req.body;
 
@@ -91,6 +95,7 @@ export async function registerRoutes(
       : "Test Failed\nExpected output does not match\nTry checking your logic again.";
 
     await storage.createSubmission(userId, {
+      userId,
       problemId,
       code,
       status: passed ? "Passed" : "Failed",
@@ -152,20 +157,20 @@ export async function registerRoutes(
   });
 
   app.get(api.tutorials.get.path, async (req, res) => {
-    const tutorial = await storage.getTutorialBySlug(req.params.slug);
+    const tutorial = await storage.getTutorialBySlug(req.params.slug as string);
     if (!tutorial) return res.status(404).json({ message: "Tutorial not found" });
     res.json(tutorial);
   });
 
   app.get(api.tutorials.lesson.path, async (req, res) => {
-    const lesson = await storage.getLessonBySlug(req.params.tutorialSlug, req.params.lessonSlug);
+    const lesson = await storage.getLessonBySlug(req.params.tutorialSlug as string, req.params.lessonSlug as string);
     if (!lesson) return res.status(404).json({ message: "Lesson not found" });
     res.json(lesson);
   });
 
   app.post(api.tutorials.completeLesson.path, isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
-    const lessonId = parseInt(req.params.id);
+    const lessonId = parseInt(req.params.id as string);
     const result = await storage.completeLessonProgress(userId, lessonId);
     res.json({ success: true, xpEarned: result.xpEarned });
   });
@@ -181,7 +186,7 @@ export async function registerRoutes(
   });
 
   app.get(api.discussions.get.path, async (req, res) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     const discussion = await storage.getDiscussionById(id);
     if (!discussion) return res.status(404).json({ message: "Discussion not found" });
     
@@ -206,7 +211,7 @@ export async function registerRoutes(
 
   app.post(api.discussions.answer.path, isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
-    const discussionId = parseInt(req.params.id);
+    const discussionId = parseInt(req.params.id as string);
     const { content } = req.body;
     await storage.createAnswer(userId, discussionId, content);
     res.json({ success: true });
@@ -214,7 +219,7 @@ export async function registerRoutes(
 
   app.post(api.discussions.vote.path, isAuthenticated, async (req, res) => {
     const userId = (req.user as any).claims.sub;
-    const discussionId = parseInt(req.params.id);
+    const discussionId = parseInt(req.params.id as string);
     const { value } = req.body;
     const newCount = await storage.voteDiscussion(userId, discussionId, value);
     res.json({ success: true, newCount });

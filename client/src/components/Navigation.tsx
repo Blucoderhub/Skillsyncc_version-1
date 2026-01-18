@@ -1,13 +1,19 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useUserStats } from "@/hooks/use-user-stats";
-import { Code2, Swords, Trophy, LogOut, Terminal, Map, BookOpen, MessageSquare, Calendar } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Code2, Swords, Trophy, LogOut, Terminal, Map, BookOpen, MessageSquare, Calendar, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function Navigation() {
   const [location] = useLocation();
   const { user, logout } = useAuth();
   const { data: stats } = useUserStats();
+  
+  const { data: adminCheck } = useQuery<{ isAdmin: boolean }>({
+    queryKey: ["/api/admin/check"],
+    enabled: !!user,
+  });
 
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: Map },
@@ -56,6 +62,21 @@ export function Navigation() {
         </nav>
 
         <div className="flex items-center gap-2">
+          {adminCheck?.isAdmin && (
+            <Link 
+              href="/admin" 
+              className={cn(
+                "flex items-center gap-2 px-3 py-2 rounded-md font-display text-xs transition-colors",
+                location === "/admin"
+                  ? "bg-primary/10 text-primary border border-primary/20"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              )}
+              data-testid="nav-admin"
+            >
+              <Shield className="h-4 w-4" />
+              <span className="hidden md:inline">Admin</span>
+            </Link>
+          )}
           <Link href="/profile" className="hidden sm:flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors" data-testid="link-profile">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-sm font-bold text-white">
               {(user.firstName?.[0] || 'P').toUpperCase()}
