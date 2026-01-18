@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { BookOpen, Clock, Star, ChevronRight, Code2 } from "lucide-react";
+import { BookOpen, Star, ChevronRight, Code2, FileCode, Database, Globe, Cpu, Braces } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Tutorial } from "@shared/schema";
+import { SiPython, SiHtml5, SiCss3, SiJavascript } from "react-icons/si";
 
 export default function Tutorials() {
   const { data: tutorials, isLoading } = useQuery<Tutorial[]>({
@@ -27,13 +28,16 @@ export default function Tutorials() {
     Algorithms: "from-pink-500/20 to-pink-600/10 border-pink-500/30",
   };
 
-  const categoryIcons: Record<string, string> = {
-    Python: "🐍",
-    HTML: "📄",
-    CSS: "🎨",
-    JavaScript: "⚡",
-    SQL: "🗃️",
-    Algorithms: "🧠",
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case "Python": return <SiPython className="w-6 h-6 text-green-500" />;
+      case "HTML": return <SiHtml5 className="w-6 h-6 text-orange-500" />;
+      case "CSS": return <SiCss3 className="w-6 h-6 text-blue-500" />;
+      case "JavaScript": return <SiJavascript className="w-6 h-6 text-yellow-500" />;
+      case "SQL": return <Database className="w-6 h-6 text-purple-500" />;
+      case "Algorithms": return <Cpu className="w-6 h-6 text-pink-500" />;
+      default: return <Code2 className="w-6 h-6 text-muted-foreground" />;
+    }
   };
 
   return (
@@ -62,9 +66,9 @@ export default function Tutorials() {
               data-testid={`card-tutorial-${tutorial.id}`}
             >
               <div className="flex items-start justify-between mb-4">
-                <span className="text-3xl" role="img" aria-label={tutorial.category}>
-                  {categoryIcons[tutorial.category] || <Code2 className="w-8 h-8" />}
-                </span>
+                <div className="w-10 h-10 rounded-lg bg-background/50 flex items-center justify-center">
+                  {getCategoryIcon(tutorial.category)}
+                </div>
                 <span className={cn(
                   "text-[10px] px-2 py-0.5 rounded font-mono uppercase border",
                   tutorial.difficulty === "Beginner" ? "bg-green-500/10 text-green-500 border-green-500/20" :

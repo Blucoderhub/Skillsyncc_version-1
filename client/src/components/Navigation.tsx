@@ -45,6 +45,7 @@ export function Navigation() {
                     ? "bg-primary/10 text-primary border border-primary/20"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
+                data-testid={`nav-${item.label.toLowerCase()}`}
               >
                 <item.icon className="h-4 w-4" />
                 <span className="hidden md:inline">{item.label}</span>
@@ -54,13 +55,13 @@ export function Navigation() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <Link href="/profile" className="hidden sm:flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors">
+          <Link href="/profile" className="hidden sm:flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted transition-colors" data-testid="link-profile">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-sm font-bold text-white">
               {(user.firstName?.[0] || 'P').toUpperCase()}
             </div>
             <div className="flex flex-col items-start">
-              <span className="text-xs font-bold text-foreground">{user.firstName || 'Player'}</span>
-              <span className="text-[10px] text-secondary">Lvl. {stats?.level || 1}</span>
+              <span className="text-xs font-bold text-foreground" data-testid="text-username">{user.firstName || 'Player'}</span>
+              <span className="text-[10px] text-secondary" data-testid="text-user-level-nav">Lvl. {stats?.level || 1}</span>
             </div>
           </Link>
           <button

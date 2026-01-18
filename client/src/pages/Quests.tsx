@@ -1,12 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { CheckCircle2, Circle, Swords, Lock, Search, Filter, Star, Zap } from "lucide-react";
+import { CheckCircle2, Circle, Swords, Search, Filter, Star, Zap, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type { ProblemResponse } from "@shared/schema";
 
 export default function Quests() {
@@ -14,19 +14,23 @@ export default function Quests() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedDifficulty, setSelectedDifficulty] = useState("all");
 
-  const { data: problems, isLoading } = useQuery<ProblemResponse[]>({
-    queryKey: ['/api/problems', { category: selectedCategory, difficulty: selectedDifficulty, search: searchTerm }],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (selectedCategory !== 'all') params.append('category', selectedCategory);
-      if (selectedDifficulty !== 'all') params.append('difficulty', selectedDifficulty);
-      if (searchTerm) params.append('search', searchTerm);
-      
-      const url = `/api/problems${params.toString() ? '?' + params.toString() : ''}`;
-      const res = await fetch(url, { credentials: "include" });
-      return res.json();
-    },
+  const { data: allProblems, isLoading } = useQuery<ProblemResponse[]>({
+    queryKey: ['/api/problems'],
   });
+
+  const filteredProblems = useMemo(() => {
+    if (!allProblems) return [];
+    
+    return allProblems.filter(problem => {
+      const matchesSearch = !searchTerm || 
+        problem.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        problem.description.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = selectedCategory === 'all' || problem.category === selectedCategory;
+      const matchesDifficulty = selectedDifficulty === 'all' || problem.difficulty === selectedDifficulty;
+      
+      return matchesSearch && matchesCategory && matchesDifficulty;
+    });
+  }, [allProblems, searchTerm, selectedCategory, selectedDifficulty]);
 
   if (isLoading) {
     return (
@@ -36,17 +40,17 @@ export default function Quests() {
     );
   }
 
-  const categories = ["all", "Python", "Algorithms", "Web", "JavaScript", "SQL", "Data Structures"];
+  const categories = ["all", ...Array.from(new Set(allProblems?.map(p => p.category) || []))];
   const difficulties = ["all", "Easy", "Medium", "Hard"];
 
-  const groupedProblems = problems?.reduce((acc, problem) => {
+  const groupedProblems = filteredProblems.reduce((acc, problem) => {
     if (!acc[problem.category]) acc[problem.category] = [];
     acc[problem.category].push(problem);
     return acc;
-  }, {} as Record<string, ProblemResponse[]>) || {};
+  }, {} as Record<string, ProblemResponse[]>);
 
-  const solvedCount = problems?.filter(p => p.isSolved).length || 0;
-  const totalCount = problems?.length || 0;
+  const solvedCount = filteredProblems.filter(p => p.isSolved).length;
+  const totalCount = filteredProblems.length;
 
   return (
     <div className="retro-container space-y-8">
@@ -80,7 +84,7 @@ export default function Quests() {
             </SelectTrigger>
             <SelectContent>
               {categories.map(cat => (
-                <SelectItem key={cat} value={cat}>
+                <SelectItem key={cat} value={cat} data-testid={`option-category-${cat}`}>
                   {cat === 'all' ? 'All Categories' : cat}
                 </SelectItem>
               ))}
@@ -93,7 +97,7 @@ export default function Quests() {
             </SelectTrigger>
             <SelectContent>
               {difficulties.map(diff => (
-                <SelectItem key={diff} value={diff}>
+                <SelectItem key={diff} value={diff} data-testid={`option-difficulty-${diff}`}>
                   {diff === 'all' ? 'All Levels' : diff}
                 </SelectItem>
               ))}
@@ -103,7 +107,7 @@ export default function Quests() {
 
         <div className="text-sm text-muted-foreground ml-auto flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 text-green-500" />
-          {solvedCount}/{totalCount} completed
+          <span data-testid="text-solved-count">{solvedCount}/{totalCount} completed</span>
         </div>
       </div>
 
@@ -167,14 +171,15 @@ export default function Quests() {
                     </div>
                     
                     {problem.isSolved ? (
-                      <span className="text-[10px] font-bold text-green-500 uppercase tracking-wider">
+                      <span className="text-[10px] font-bold text-green-500 uppercase tracking-wider" data-testid={`status-completed-${problem.id}`}>
                         Completed
                       </span>
                     ) : (
-                      <Button size="sm" variant="ghost" className="text-xs group-hover:bg-primary group-hover:text-primary-foreground">
-                        <Zap className="w-3 h-3 mr-1" />
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground group-hover:text-primary transition-colors">
+                        <Zap className="w-3 h-3" />
                         Start
-                      </Button>
+                        <ChevronRight className="w-3 h-3" />
+                      </div>
                     )}
                   </motion.div>
                 </Link>
@@ -184,10 +189,10 @@ export default function Quests() {
         ))}
       </div>
 
-      {(!problems || problems.length === 0) && (
+      {filteredProblems.length === 0 && (
         <div className="pixel-card p-12 text-center">
           <Swords className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground" data-testid="text-no-quests">
             {searchTerm || selectedCategory !== 'all' || selectedDifficulty !== 'all'
               ? "No quests match your filters"
               : "No quests available yet"}
