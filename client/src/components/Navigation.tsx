@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useUserStats } from "@/hooks/use-user-stats";
-import { Code2, Swords, Trophy, LogOut, Terminal, Map, BookOpen, MessageSquare, Award, User } from "lucide-react";
+import { Code2, Swords, Trophy, LogOut, Terminal, Map, BookOpen, MessageSquare, Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function Navigation() {
@@ -13,9 +13,10 @@ export function Navigation() {
     { href: "/dashboard", label: "Dashboard", icon: Map },
     { href: "/quests", label: "Quests", icon: Swords },
     { href: "/tutorials", label: "Learn", icon: BookOpen },
+    { href: "/practice", label: "Practice", icon: Code2 },
+    { href: "/hackathons", label: "Hackathons", icon: Calendar },
     { href: "/discussions", label: "Community", icon: MessageSquare },
     { href: "/leaderboard", label: "Ranks", icon: Trophy },
-    { href: "/ide", label: "IDE", icon: Code2 },
   ];
 
   if (!user) return null;

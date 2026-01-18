@@ -252,20 +252,20 @@ export default function Dashboard() {
           </motion.div>
         </Link>
 
-        <Link href="/ide">
+        <Link href="/practice">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.7 }}
             className="pixel-card p-5 cursor-pointer group hover:border-accent/30 transition-colors"
-            data-testid="card-quick-ide"
+            data-testid="card-quick-practice"
           >
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-lg bg-accent/10 flex items-center justify-center">
                 <Code2 className="w-6 h-6 text-accent" />
               </div>
               <div>
-                <h4 className="font-bold group-hover:text-accent transition-colors">Playground</h4>
+                <h4 className="font-bold group-hover:text-accent transition-colors">Practice</h4>
                 <p className="text-xs text-muted-foreground">Code in 8+ languages</p>
               </div>
               <ChevronRight className="w-5 h-5 text-muted-foreground ml-auto group-hover:text-accent" />

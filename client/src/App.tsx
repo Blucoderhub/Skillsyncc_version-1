@@ -6,13 +6,14 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
 import { Navigation } from "@/components/Navigation";
 import { ChatWidget } from "@/components/ChatWidget";
+import { Footer } from "@/components/Footer";
 
 import Landing from "@/pages/Landing";
 import Dashboard from "@/pages/Dashboard";
 import Quests from "@/pages/Quests";
 import ProblemDetail from "@/pages/ProblemDetail";
 import Hackathons from "@/pages/Hackathons";
-import IDE from "@/pages/IDE";
+import Practice from "@/pages/IDE";
 import Tutorials from "@/pages/Tutorials";
 import TutorialDetail from "@/pages/TutorialDetail";
 import Discussions from "@/pages/Discussions";
@@ -30,13 +31,14 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   if (!user) return <Redirect to="/" />;
 
   return (
-    <>
+    <div className="min-h-screen flex flex-col">
       <Navigation />
-      <div className="min-h-screen pt-4 pb-20">
+      <main className="flex-grow pt-4 pb-8">
         <Component />
-      </div>
+      </main>
+      <Footer />
       <ChatWidget />
-    </>
+    </div>
   );
 }
 
@@ -73,8 +75,12 @@ function Router() {
         <ProtectedRoute component={Hackathons} />
       </Route>
 
+      <Route path="/practice">
+        <ProtectedRoute component={Practice} />
+      </Route>
+
       <Route path="/ide">
-        <ProtectedRoute component={IDE} />
+        <Redirect to="/practice" />
       </Route>
 
       <Route path="/tutorials">
