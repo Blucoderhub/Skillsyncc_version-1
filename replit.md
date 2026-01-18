@@ -67,6 +67,16 @@ BlueCoderHub is a gamified ed-tech platform inspired by Codedex.io, combining fe
 - **Components**: Pixel-art inspired cards with drop shadows
 - **Dark mode by default** with gradient backgrounds
 
+## Recent Changes (Jan 2026)
+- Added Tutorials/Learn page with structured courses (W3Schools/Codedex style)
+- Added Q&A Community/Discussions page (StackOverflow-style voting and answers)
+- Added Leaderboard page with global rankings
+- Added User Profile page with badges and achievements
+- Enhanced IDE with 8 programming language support (Python, JavaScript, TypeScript, HTML, CSS, SQL, Java, C++)
+- Enhanced Quests page with filtering by category/difficulty and search
+- Added Daily Challenge feature to Dashboard
+- Updated Navigation with all new sections
+
 ## Development Commands
 - `npm run dev` - Start development server
 - `npm run db:push` - Push database schema changes
