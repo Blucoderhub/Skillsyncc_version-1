@@ -4,7 +4,7 @@ import { SiGithub, SiLinkedin, SiX, SiInstagram, SiDiscord, SiYoutube } from "re
 
 export function Footer() {
   const socialLinks = [
-    { icon: SiGithub, href: "https://github.com/bluecoderhub", label: "GitHub" },
+    { icon: SiGithub, href: "https://github.com/Blucoderhub", label: "GitHub" },
     { icon: SiLinkedin, href: "https://linkedin.com/company/bluecoderhub", label: "LinkedIn" },
     { icon: SiX, href: "https://x.com/bluecoderhub", label: "X (Twitter)" },
     { icon: SiInstagram, href: "https://instagram.com/bluecoderhub", label: "Instagram" },
