@@ -90,10 +90,10 @@ export default function Landing() {
             ) : (
               <div className="flex gap-3">
                 <Button asChild variant="ghost" className="text-gray-400 hover:text-white rounded-xl">
-                  <Link href="/login">Login</Link>
+                  <a href="/api/login">Login</a>
                 </Button>
                 <Button asChild className="bg-primary hover:bg-primary/90 text-white border-0 shadow-lg shadow-primary/20 rounded-xl px-8">
-                  <Link href="/login">Get Started</Link>
+                  <a href="/api/login">Get Started</a>
                 </Button>
               </div>
             )}
