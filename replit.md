@@ -19,6 +19,10 @@ BlueCoderHub is a gamified ed-tech platform inspired by Codedex.io, combining fe
 4. **AI Companion**: Chat widget powered by OpenAI
 5. **Hackathon Tracker**: Global hackathon listings
 6. **User Progress**: XP tracking, level progression
+7. **Club Membership**: Premium subscription tier with Stripe payments
+8. **Certificates**: Verifiable course completion certificates (Club-only)
+9. **Portfolio Hosting**: Showcase projects with public profiles (Club-only)
+10. **Monthly Challenges**: Competitive coding challenges with prizes (Club-only)
 
 ## Project Structure
 ```
@@ -51,8 +55,24 @@ BlueCoderHub is a gamified ed-tech platform inspired by Codedex.io, combining fe
 - `/api/login` - Login flow
 - `/api/logout` - Logout flow
 
+### Club Premium Endpoints (requires active Club membership)
+- `GET /api/certificates` - Get user's certificates
+- `POST /api/certificates` - Issue a certificate for completed course
+- `GET /api/portfolio` - Get user's portfolio projects
+- `POST /api/portfolio` - Create new project
+- `PATCH /api/portfolio/:id` - Update project
+- `DELETE /api/portfolio/:id` - Delete project
+- `GET /api/challenges` - List monthly challenges (public)
+- `GET /api/challenges/:id` - Get challenge details (public)
+- `POST /api/challenges/:id/submit` - Submit to challenge (Club-only)
+
+### Stripe Endpoints
+- `POST /api/stripe/checkout` - Create Stripe checkout session
+- `GET /api/subscription` - Get user's subscription status
+- `POST /api/stripe/portal` - Create Stripe customer portal session
+
 ## Database Tables
-- `users` - User accounts (Replit Auth)
+- `users` - User accounts (Replit Auth) with Stripe/membership fields
 - `sessions` - Session storage
 - `problems` - Coding challenges
 - `submissions` - User code submissions
@@ -60,6 +80,10 @@ BlueCoderHub is a gamified ed-tech platform inspired by Codedex.io, combining fe
 - `hackathons` - Hackathon listings
 - `conversations` - AI chat conversations
 - `messages` - AI chat messages
+- `certificates` - Course completion certificates (Club)
+- `projects` - Portfolio projects (Club)
+- `monthly_challenges` - Monthly coding challenges (Club)
+- `challenge_submissions` - User submissions for challenges
 
 ## Design Theme
 - **Colors**: Deep space blue backgrounds, neon purple/green/pink accents
@@ -76,6 +100,12 @@ BlueCoderHub is a gamified ed-tech platform inspired by Codedex.io, combining fe
 - Enhanced Quests page with filtering by category/difficulty and search
 - Added Daily Challenge feature to Dashboard
 - Updated Navigation with all new sections
+- **Club Membership System**: Stripe-powered subscriptions ($9.99/month, $79.99/year)
+- **Certificates Page**: View/download earned certificates (Club-only)
+- **Portfolio Page**: Create and showcase projects (Club-only)
+- **Monthly Challenges**: Competitive challenges with prizes (Club-only)
+- **Success Stories**: Landing page testimonials section
+- **Server-side Authorization**: isClubMember middleware for premium routes
 
 ## Development Commands
 - `npm run dev` - Start development server

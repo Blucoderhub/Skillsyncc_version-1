@@ -2,12 +2,13 @@ import { db } from "./db";
 import { 
   problems, submissions, userProgress, hackathons, tutorials, lessons,
   discussions, answers, votes, badges, userBadges, dailyChallenges, userLessonProgress,
-  users,
+  users, certificates, projects, monthlyChallenges, challengeSubmissions,
   type Problem, type Submission, type UserProgress, type Hackathon, type Tutorial, type Lesson,
   type Discussion, type Answer, type Badge, type UserBadge, type User,
+  type Certificate, type Project, type MonthlyChallenge, type ChallengeSubmission,
   type InsertSubmission, type InsertDiscussion, type InsertAnswer
 } from "@shared/schema";
-import { eq, desc, sql, and, like, or } from "drizzle-orm";
+import { eq, desc, sql, and, like, or, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
   // Problems
@@ -48,11 +49,29 @@ export interface IStorage {
   // Hackathons
   getAllHackathons(): Promise<Hackathon[]>;
   
+  // Club Features - Certificates
+  getUserCertificates(userId: string): Promise<Certificate[]>;
+  createCertificate(data: { userId: string; tutorialId: number; title: string; issuedAt: Date }): Promise<Certificate>;
+  
+  // Club Features - Portfolio
+  getUserProjects(userId: string): Promise<Project[]>;
+  getProjectById(id: number): Promise<Project | undefined>;
+  createProject(data: { userId: string; title: string; description: string; techStack: string[]; liveUrl: string | null; repoUrl: string | null; imageUrl: string | null; isPublic: boolean }): Promise<Project>;
+  updateProject(id: number, data: Partial<Project>): Promise<Project>;
+  deleteProject(id: number): Promise<void>;
+  
+  // Club Features - Monthly Challenges
+  getAllMonthlyChallenges(): Promise<MonthlyChallenge[]>;
+  getMonthlyChallengeById(id: number): Promise<MonthlyChallenge | undefined>;
+  createChallengeSubmission(data: { userId: string; challengeId: number; projectUrl: string; description: string; submittedAt: Date }): Promise<ChallengeSubmission>;
+  getUserChallengeSubmissions(userId: string, challengeId: number): Promise<ChallengeSubmission[]>;
+  
   // Seeding
   seedHackathons(hackathonsData: any[]): Promise<void>;
   seedProblems(problemsData: any[]): Promise<void>;
   seedTutorials(tutorialsData: any[], lessonsData: any[]): Promise<void>;
   seedBadges(badgesData: any[]): Promise<void>;
+  seedMonthlyChallenges(challengesData: any[]): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -481,6 +500,111 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(users)
       .where(eq(users.membershipStatus, 'active'))
       .orderBy(desc(users.createdAt));
+  }
+
+  // --- CLUB FEATURES: CERTIFICATES ---
+  
+  async getUserCertificates(userId: string): Promise<Certificate[]> {
+    return await db.select().from(certificates)
+      .where(eq(certificates.userId, userId))
+      .orderBy(desc(certificates.issuedAt));
+  }
+
+  async createCertificate(data: { userId: string; tutorialId: number; title: string; issuedAt: Date }): Promise<Certificate> {
+    const [certificate] = await db.insert(certificates)
+      .values({
+        userId: data.userId,
+        tutorialId: data.tutorialId,
+        title: data.title,
+        issuedAt: data.issuedAt,
+        verificationCode: `BCH-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
+      })
+      .returning();
+    return certificate;
+  }
+
+  // --- CLUB FEATURES: PORTFOLIO ---
+  
+  async getUserProjects(userId: string): Promise<Project[]> {
+    return await db.select().from(projects)
+      .where(eq(projects.userId, userId))
+      .orderBy(desc(projects.createdAt));
+  }
+
+  async getProjectById(id: number): Promise<Project | undefined> {
+    const [project] = await db.select().from(projects).where(eq(projects.id, id));
+    return project;
+  }
+
+  async createProject(data: { userId: string; title: string; description: string; techStack: string[]; liveUrl: string | null; repoUrl: string | null; imageUrl: string | null; isPublic: boolean }): Promise<Project> {
+    const [project] = await db.insert(projects)
+      .values({
+        userId: data.userId,
+        title: data.title,
+        description: data.description,
+        techStack: data.techStack,
+        liveUrl: data.liveUrl,
+        repoUrl: data.repoUrl,
+        imageUrl: data.imageUrl,
+        isPublic: data.isPublic,
+      })
+      .returning();
+    return project;
+  }
+
+  async updateProject(id: number, data: Partial<Project>): Promise<Project> {
+    const [project] = await db.update(projects)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(projects.id, id))
+      .returning();
+    return project;
+  }
+
+  async deleteProject(id: number): Promise<void> {
+    await db.delete(challengeSubmissions).where(eq(challengeSubmissions.projectId, id));
+    await db.delete(projects).where(eq(projects.id, id));
+  }
+
+  // --- CLUB FEATURES: MONTHLY CHALLENGES ---
+  
+  async getAllMonthlyChallenges(): Promise<MonthlyChallenge[]> {
+    return await db.select().from(monthlyChallenges)
+      .orderBy(desc(monthlyChallenges.startDate));
+  }
+
+  async getMonthlyChallengeById(id: number): Promise<MonthlyChallenge | undefined> {
+    const [challenge] = await db.select().from(monthlyChallenges).where(eq(monthlyChallenges.id, id));
+    return challenge;
+  }
+
+  async createChallengeSubmission(data: { userId: string; challengeId: number; projectUrl: string; description: string; submittedAt: Date }): Promise<ChallengeSubmission> {
+    const [submission] = await db.insert(challengeSubmissions)
+      .values({
+        userId: data.userId,
+        challengeId: data.challengeId,
+        projectUrl: data.projectUrl,
+        description: data.description,
+        submittedAt: data.submittedAt,
+        status: 'submitted',
+      })
+      .returning();
+    return submission;
+  }
+
+  async getUserChallengeSubmissions(userId: string, challengeId: number): Promise<ChallengeSubmission[]> {
+    return await db.select().from(challengeSubmissions)
+      .where(and(
+        eq(challengeSubmissions.userId, userId),
+        eq(challengeSubmissions.challengeId, challengeId)
+      ))
+      .orderBy(desc(challengeSubmissions.submittedAt));
+  }
+
+  async seedMonthlyChallenges(challengesData: any[]): Promise<void> {
+    const existingChallenges = await db.select().from(monthlyChallenges);
+    if (existingChallenges.length === 0 && challengesData.length > 0) {
+      await db.insert(monthlyChallenges).values(challengesData);
+    }
   }
 }
 

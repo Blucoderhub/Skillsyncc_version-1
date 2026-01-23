@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
@@ -9,6 +9,44 @@ import { registerAudioRoutes } from "./replit_integrations/audio";
 import { registerAdminRoutes } from "./admin-routes";
 import { initStripe, registerStripeRoutes, registerStripeWebhookRoute } from "./stripe/stripeRoutes";
 import { z } from "zod";
+
+// Middleware to check if user has active Club membership
+const isClubMember = async (req: Request, res: Response, next: NextFunction) => {
+  const reqAny = req as any;
+  if (!reqAny.isAuthenticated || !reqAny.isAuthenticated()) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+  
+  const userId = reqAny.user?.claims?.sub;
+  if (!userId) {
+    return res.status(401).json({ error: "User not found" });
+  }
+  
+  try {
+    const user = await storage.getUser(userId);
+    if (!user) {
+      return res.status(401).json({ error: "User not found" });
+    }
+    
+    const isActive = user.membershipStatus === 'active' && 
+                     user.membershipTier && 
+                     ['club_monthly', 'club_yearly'].includes(user.membershipTier) &&
+                     (!user.membershipExpiresAt || new Date(user.membershipExpiresAt) > new Date());
+    
+    if (!isActive) {
+      return res.status(403).json({ 
+        error: "Club membership required",
+        requiresUpgrade: true,
+        message: "This feature requires an active Club membership. Please upgrade to access."
+      });
+    }
+    
+    next();
+  } catch (error) {
+    console.error('Club membership check error:', error);
+    return res.status(500).json({ error: "Failed to verify membership" });
+  }
+};
 
 export async function registerRoutes(
   httpServer: Server,
@@ -247,6 +285,164 @@ export async function registerRoutes(
     const hacks = await storage.getAllHackathons();
     res.json(hacks);
   });
+
+  // ==========================================
+  // CLUB MEMBERSHIP PREMIUM ROUTES
+  // ==========================================
+
+  // Get user's certificates (Club members only)
+  app.get("/api/certificates", isAuthenticated, isClubMember, async (req, res) => {
+    const userId = (req as any).user.claims.sub;
+    const certificates = await storage.getUserCertificates(userId);
+    res.json(certificates);
+  });
+
+  // Issue a certificate (Club members only, after course completion)
+  app.post("/api/certificates", isAuthenticated, isClubMember, async (req, res) => {
+    const userId = (req as any).user.claims.sub;
+    const { tutorialId, tutorialTitle } = req.body;
+    
+    if (!tutorialId || !tutorialTitle) {
+      return res.status(400).json({ error: "Tutorial ID and title required" });
+    }
+    
+    // Check if certificate already exists
+    const existingCerts = await storage.getUserCertificates(userId);
+    if (existingCerts.some(c => c.tutorialId === tutorialId)) {
+      return res.status(400).json({ error: "Certificate already issued for this course" });
+    }
+    
+    const certificate = await storage.createCertificate({
+      userId,
+      tutorialId,
+      title: `${tutorialTitle} Certificate`,
+      issuedAt: new Date(),
+    });
+    
+    res.json(certificate);
+  });
+
+  // Get user's portfolio projects (Club members only)
+  app.get("/api/portfolio", isAuthenticated, isClubMember, async (req, res) => {
+    const userId = (req as any).user.claims.sub;
+    const projects = await storage.getUserProjects(userId);
+    res.json(projects);
+  });
+
+  // Create a portfolio project (Club members only)
+  app.post("/api/portfolio", isAuthenticated, isClubMember, async (req, res) => {
+    const userId = (req as any).user.claims.sub;
+    const { title, description, techStack, liveUrl, repoUrl, imageUrl } = req.body;
+    
+    if (!title || !description) {
+      return res.status(400).json({ error: "Title and description required" });
+    }
+    
+    const project = await storage.createProject({
+      userId,
+      title,
+      description,
+      techStack: techStack || [],
+      liveUrl: liveUrl || null,
+      repoUrl: repoUrl || null,
+      imageUrl: imageUrl || null,
+      isPublic: true,
+    });
+    
+    res.json(project);
+  });
+
+  // Update a portfolio project (Club members only)
+  app.patch("/api/portfolio/:id", isAuthenticated, isClubMember, async (req, res) => {
+    const userId = (req as any).user.claims.sub;
+    const projectId = parseInt(req.params.id);
+    const { title, description, techStack, liveUrl, repoUrl, imageUrl, isPublic } = req.body;
+    
+    const project = await storage.getProjectById(projectId);
+    if (!project) {
+      return res.status(404).json({ error: "Project not found" });
+    }
+    if (project.userId !== userId) {
+      return res.status(403).json({ error: "Not authorized to edit this project" });
+    }
+    
+    const updated = await storage.updateProject(projectId, {
+      title, description, techStack, liveUrl, repoUrl, imageUrl, isPublic
+    });
+    
+    res.json(updated);
+  });
+
+  // Delete a portfolio project (Club members only)
+  app.delete("/api/portfolio/:id", isAuthenticated, isClubMember, async (req, res) => {
+    const userId = (req as any).user.claims.sub;
+    const projectId = parseInt(req.params.id);
+    
+    const project = await storage.getProjectById(projectId);
+    if (!project) {
+      return res.status(404).json({ error: "Project not found" });
+    }
+    if (project.userId !== userId) {
+      return res.status(403).json({ error: "Not authorized to delete this project" });
+    }
+    
+    await storage.deleteProject(projectId);
+    res.json({ success: true });
+  });
+
+  // Get monthly challenges (public list, but submissions are Club-only)
+  app.get("/api/challenges", async (req, res) => {
+    const challenges = await storage.getAllMonthlyChallenges();
+    res.json(challenges);
+  });
+
+  // Get single challenge details
+  app.get("/api/challenges/:id", async (req, res) => {
+    const challengeId = parseInt(req.params.id);
+    const challenge = await storage.getMonthlyChallengeById(challengeId);
+    if (!challenge) {
+      return res.status(404).json({ error: "Challenge not found" });
+    }
+    res.json(challenge);
+  });
+
+  // Submit to a monthly challenge (Club members only)
+  app.post("/api/challenges/:id/submit", isAuthenticated, isClubMember, async (req, res) => {
+    const userId = (req as any).user.claims.sub;
+    const challengeId = parseInt(req.params.id);
+    const { projectUrl, description } = req.body;
+    
+    const challenge = await storage.getMonthlyChallengeById(challengeId);
+    if (!challenge) {
+      return res.status(404).json({ error: "Challenge not found" });
+    }
+    
+    if (new Date() > challenge.endDate) {
+      return res.status(400).json({ error: "Challenge submission period has ended" });
+    }
+    
+    const submission = await storage.createChallengeSubmission({
+      userId,
+      challengeId,
+      projectUrl,
+      description,
+      submittedAt: new Date(),
+    });
+    
+    res.json(submission);
+  });
+
+  // Get user's challenge submissions
+  app.get("/api/challenges/:id/submissions", isAuthenticated, async (req, res) => {
+    const userId = (req as any).user.claims.sub;
+    const challengeId = parseInt(req.params.id);
+    const submissions = await storage.getUserChallengeSubmissions(userId, challengeId);
+    res.json(submissions);
+  });
+
+  // ==========================================
+  // END CLUB MEMBERSHIP ROUTES
+  // ==========================================
 
   // Seed Data
   await seedDatabase();
@@ -560,6 +756,43 @@ async function seedDatabase() {
     { tutorialSlug: "javascript-intro", slug: "dom", title: "DOM Manipulation", content: "Interact with HTML elements.\n\n```javascript\ndocument.getElementById('myId');\ndocument.querySelector('.class');\n```", codeExample: "document.body.style.backgroundColor = 'lightblue';", order: 2, xpReward: 50, language: "javascript" },
   ];
 
+  // Monthly Challenges seed data
+  const now = new Date();
+  const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const lastDayOfMonth = new Date(nextMonth.getTime() - 1);
+  const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  // Handle year rollover for previous month (Jan -> Dec of previous year)
+  const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const prevMonthStr = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, '0')}`;
+
+  const monthlyChallengesData = [
+    {
+      title: "January Jam: Build Your Portfolio",
+      description: "Create your portfolio website using HTML, CSS, and JavaScript. Showcase your skills and projects in a creative way!",
+      month: monthStr,
+      prize: "Winner gets featured on homepage + 2000 XP bonus",
+      prizeAmount: 2000,
+      rules: "Must include: About section, Projects gallery, Contact form",
+      isClubOnly: true,
+      startDate: currentMonth,
+      endDate: lastDayOfMonth,
+      isActive: true,
+    },
+    {
+      title: "Algorithm Arena",
+      description: "Solve 10 algorithm challenges in our Practice section. First to complete all wins!",
+      month: prevMonthStr,
+      prize: "1000 XP + Algorithm Master badge",
+      prizeAmount: 1000,
+      rules: "Complete 10 problems with 100% test pass rate",
+      isClubOnly: true,
+      startDate: new Date(now.getFullYear(), now.getMonth() - 1, 1),
+      endDate: new Date(now.getFullYear(), now.getMonth(), 0),
+      isActive: false,
+    },
+  ];
+
   const badgesData = [
     { slug: "first-quest", name: "First Quest", description: "Complete your first coding challenge", icon: "Sword", color: "text-green-500", xpRequired: null, problemsRequired: 1, category: "achievement" },
     { slug: "problem-solver", name: "Problem Solver", description: "Solve 5 coding challenges", icon: "Lightbulb", color: "text-yellow-500", xpRequired: null, problemsRequired: 5, category: "achievement" },
@@ -575,4 +808,5 @@ async function seedDatabase() {
   await storage.seedHackathons(hackathonsData);
   await storage.seedTutorials(tutorialsData, lessonsData);
   await storage.seedBadges(badgesData);
+  await storage.seedMonthlyChallenges(monthlyChallengesData);
 }

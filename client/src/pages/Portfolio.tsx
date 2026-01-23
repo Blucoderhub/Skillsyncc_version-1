@@ -10,24 +10,86 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter 
 } from "@/components/ui/dialog";
 import { 
-  Code2, ExternalLink, Github, Plus, Heart, Eye, Star, Folder, Crown 
+  Code2, ExternalLink, Github, Plus, Heart, Eye, Star, Folder, Crown, Lock, AlertCircle
 } from "lucide-react";
 import { Link } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useForm } from "react-hook-form";
+import type { Project } from "@shared/schema";
+
+interface ProjectFormData {
+  title: string;
+  description: string;
+  liveUrl: string;
+  repoUrl: string;
+  techStack: string;
+}
 
 export default function Portfolio() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-  const { data: subscription } = useQuery({
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<ProjectFormData>();
+
+  const { data: subscription } = useQuery<{ membershipStatus: string; membershipTier: string }>({
     queryKey: ["/api/subscription"],
     enabled: !!user,
   });
 
-  const isClubMember = subscription?.membershipStatus === "active";
+  const isClubMember = subscription?.membershipStatus === "active" && 
+    ['club_monthly', 'club_yearly'].includes(subscription?.membershipTier || '');
 
-  // Mock featured projects (in production, fetch from /api/projects)
+  const { data: myProjects = [], isLoading: projectsLoading, error: projectsError } = useQuery<Project[]>({
+    queryKey: ["/api/portfolio"],
+    enabled: !!user && isClubMember,
+  });
+
+  const createProjectMutation = useMutation({
+    mutationFn: async (data: ProjectFormData) => {
+      return await apiRequest("/api/portfolio", {
+        method: "POST",
+        body: JSON.stringify({
+          title: data.title,
+          description: data.description,
+          techStack: data.techStack.split(",").map(t => t.trim()).filter(Boolean),
+          liveUrl: data.liveUrl || null,
+          repoUrl: data.repoUrl || null,
+          imageUrl: null,
+        }),
+      });
+    },
+    onSuccess: () => {
+      toast({ 
+        title: "Project created!", 
+        description: "Your project has been added to your portfolio." 
+      });
+      setIsCreateOpen(false);
+      reset();
+      queryClient.invalidateQueries({ queryKey: ["/api/portfolio"] });
+    },
+    onError: (error: any) => {
+      if (error?.message?.includes("Club membership required")) {
+        toast({ 
+          title: "Club Membership Required", 
+          description: "Upgrade to Club to create portfolio projects.",
+          variant: "destructive" 
+        });
+      } else {
+        toast({ 
+          title: "Failed to create project", 
+          description: error?.message || "Please try again.",
+          variant: "destructive" 
+        });
+      }
+    },
+  });
+
+  const onSubmit = (data: ProjectFormData) => {
+    createProjectMutation.mutate(data);
+  };
+
   const featuredProjects = [
     {
       id: 1,
@@ -65,21 +127,9 @@ export default function Portfolio() {
     },
   ];
 
-  const myProjects = [
-    {
-      id: 101,
-      title: "My First Website",
-      description: "Personal portfolio built with HTML and CSS",
-      tags: ["HTML", "CSS"],
-      likes: 5,
-      views: 23,
-      visibility: "public",
-    },
-  ];
-
   return (
     <div className="retro-container py-8">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
         <div>
           <div className="flex items-center gap-3 mb-2">
             <Folder className="w-8 h-8 text-primary" />
@@ -98,45 +148,67 @@ export default function Portfolio() {
               </Button>
             </DialogTrigger>
             <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Create New Project</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div>
-                  <label className="text-sm font-medium">Project Title</label>
-                  <Input placeholder="My Awesome Project" data-testid="input-project-title" />
+              <form onSubmit={handleSubmit(onSubmit)}>
+                <DialogHeader>
+                  <DialogTitle>Create New Project</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div>
+                    <label className="text-sm font-medium">Project Title *</label>
+                    <Input 
+                      placeholder="My Awesome Project" 
+                      {...register("title", { required: "Title is required" })}
+                      data-testid="input-project-title" 
+                    />
+                    {errors.title && <p className="text-xs text-red-500 mt-1">{errors.title.message}</p>}
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Description *</label>
+                    <Textarea 
+                      placeholder="Describe your project..." 
+                      {...register("description", { required: "Description is required" })}
+                      data-testid="input-project-description" 
+                    />
+                    {errors.description && <p className="text-xs text-red-500 mt-1">{errors.description.message}</p>}
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Demo URL (optional)</label>
+                    <Input 
+                      placeholder="https://..." 
+                      {...register("liveUrl")}
+                      data-testid="input-demo-url" 
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Repository URL (optional)</label>
+                    <Input 
+                      placeholder="https://github.com/..." 
+                      {...register("repoUrl")}
+                      data-testid="input-repo-url" 
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Technologies (comma separated)</label>
+                    <Input 
+                      placeholder="React, Node.js, CSS" 
+                      {...register("techStack")}
+                      data-testid="input-tags" 
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium">Description</label>
-                  <Textarea 
-                    placeholder="Describe your project..." 
-                    data-testid="input-project-description" 
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Demo URL (optional)</label>
-                  <Input placeholder="https://..." data-testid="input-demo-url" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Repository URL (optional)</label>
-                  <Input placeholder="https://github.com/..." data-testid="input-repo-url" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Tags (comma separated)</label>
-                  <Input placeholder="React, Node.js, CSS" data-testid="input-tags" />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={() => {
-                  toast({ title: "Project created!", description: "Your project has been added to your portfolio." });
-                  setIsCreateOpen(false);
-                }}>
-                  Create Project
-                </Button>
-              </DialogFooter>
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    disabled={createProjectMutation.isPending}
+                    data-testid="button-submit-project"
+                  >
+                    {createProjectMutation.isPending ? "Creating..." : "Create Project"}
+                  </Button>
+                </DialogFooter>
+              </form>
             </DialogContent>
           </Dialog>
         )}
@@ -144,7 +216,7 @@ export default function Portfolio() {
 
       {!isClubMember && (
         <Card className="mb-8 border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5">
-          <CardContent className="flex items-center justify-between py-6">
+          <CardContent className="flex items-center justify-between py-6 flex-wrap gap-4">
             <div className="flex items-center gap-4">
               <div className="p-3 rounded-full bg-primary/20">
                 <Crown className="w-6 h-6 text-primary" />
@@ -156,7 +228,7 @@ export default function Portfolio() {
                 </p>
               </div>
             </div>
-            <Button asChild>
+            <Button asChild data-testid="button-join-club-portfolio">
               <Link href="/pricing">Join Club</Link>
             </Button>
           </CardContent>
@@ -170,48 +242,96 @@ export default function Portfolio() {
             <Code2 className="w-5 h-5 text-primary" />
             My Projects
           </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {myProjects.map((project) => (
-              <Card key={project.id}>
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between">
-                    <CardTitle className="text-lg">{project.title}</CardTitle>
-                    <Badge variant="outline" className="text-xs">
-                      {project.visibility}
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-3">{project.description}</p>
-                  <div className="flex flex-wrap gap-1 mb-3">
-                    {project.tags.map((tag) => (
-                      <Badge key={tag} variant="secondary" className="text-xs">
-                        {tag}
+          
+          {projectsLoading ? (
+            <Card>
+              <CardContent className="py-8 text-center">
+                <p className="text-muted-foreground animate-pulse">Loading projects...</p>
+              </CardContent>
+            </Card>
+          ) : projectsError ? (
+            <Card>
+              <CardContent className="py-8 text-center">
+                {!isClubMember ? (
+                  <>
+                    <Lock className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-muted-foreground">Upgrade to Club to create portfolio projects</p>
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-muted-foreground">Unable to load projects</p>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          ) : myProjects.length > 0 ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {myProjects.map((project) => (
+                <Card key={project.id}>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start justify-between">
+                      <CardTitle className="text-lg">{project.title}</CardTitle>
+                      <Badge variant="outline" className="text-xs">
+                        {project.isPublic ? "public" : "private"}
                       </Badge>
-                    ))}
-                  </div>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <Heart className="w-3 h-3" /> {project.likes}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Eye className="w-3 h-3" /> {project.views}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-            {!isClubMember && myProjects.length >= 1 && (
-              <Card className="border-dashed flex items-center justify-center min-h-[200px]">
-                <CardContent className="text-center py-8">
-                  <Crown className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">
-                    Upgrade to Club for unlimited projects
-                  </p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-3">{project.description}</p>
+                    <div className="flex flex-wrap gap-1 mb-3">
+                      {(project.techStack || []).map((tag) => (
+                        <Badge key={tag} variant="secondary" className="text-xs">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Heart className="w-3 h-3" /> {project.likes || 0}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Eye className="w-3 h-3" /> {project.views || 0}
+                      </span>
+                    </div>
+                  </CardContent>
+                  <CardFooter className="gap-2">
+                    {project.liveUrl && (
+                      <Button size="sm" variant="outline" className="gap-1" asChild>
+                        <a href={project.liveUrl} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="w-3 h-3" /> Demo
+                        </a>
+                      </Button>
+                    )}
+                    {project.repoUrl && (
+                      <Button size="sm" variant="ghost" className="gap-1" asChild>
+                        <a href={project.repoUrl} target="_blank" rel="noopener noreferrer">
+                          <Github className="w-3 h-3" /> Code
+                        </a>
+                      </Button>
+                    )}
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          ) : isClubMember ? (
+            <Card>
+              <CardContent className="py-8 text-center">
+                <Folder className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                <p className="text-muted-foreground">No projects yet</p>
+                <p className="text-sm text-muted-foreground">Create your first project to get started!</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card className="border-dashed">
+              <CardContent className="text-center py-8">
+                <Crown className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">
+                  Upgrade to Club to create projects
+                </p>
+              </CardContent>
+            </Card>
+          )}
         </section>
       )}
 
