@@ -1,0 +1,104 @@
+{
+  "colorScheme": "light",
+  "fonts": [
+    {
+      "family": "Press Start 2P",
+      "count": 46
+    },
+    {
+      "family": "sans-serif",
+      "count": 46
+    },
+    {
+      "family": "Mulish",
+      "count": 35
+    },
+    {
+      "family": "PixelGridS",
+      "count": 11
+    },
+    {
+      "family": "PixelGridM",
+      "count": 3
+    }
+  ],
+  "colors": {
+    "primary": "#007BFF",
+    "accent": "#020617",
+    "background": "#FFFFFF",
+    "textPrimary": "#020617",
+    "link": "#020617"
+  },
+  "typography": {
+    "fontFamilies": {
+      "primary": "Press Start 2P",
+      "heading": "Press Start 2P"
+    },
+    "fontStacks": {
+      "body": [
+        "Press Start 2P"
+      ],
+      "heading": [
+        "Press Start 2P"
+      ],
+      "paragraph": [
+        "Mulish",
+        "sans-serif"
+      ]
+    },
+    "fontSizes": {
+      "h1": "16px",
+      "h2": "24px",
+      "body": "12px"
+    }
+  },
+  "spacing": {
+    "baseUnit": 4,
+    "borderRadius": "4px"
+  },
+  "components": {
+    "input": {
+      "background": "transparent",
+      "textColor": "#F8FAFC",
+      "borderColor": null,
+      "borderRadius": "0px",
+      "borderRadiusCorners": {
+        "topLeft": "0px",
+        "topRight": "0px",
+        "bottomRight": "0px",
+        "bottomLeft": "0px"
+      },
+      "shadow": "none"
+    }
+  },
+  "images": {
+    "logo": "File saved at: attached_assets/logo.png",
+    "favicon": "File saved at: attached_assets/favicon.png",
+    "ogImage": "File saved at: attached_assets/ogImage.png"
+  },
+  "__framework_hints": [],
+  "__llm_logo_reasoning": {
+    "selectedIndex": 0,
+    "reasoning": "Logo rejected: Red flags detected (small square icon). Heuristic fallback: Moderate indicators: in header, no link (brand logos usually link to homepage, penalty), header location, visible, alt matches logo/brand, class contains logo, small square icon (likely UI icon, heavy penalty). Score: 46. May benefit from LLM validation.",
+    "confidence": 0.5,
+    "rejected": true
+  },
+  "__llm_button_reasoning": {
+    "primary": {
+      "index": -1,
+      "text": "N/A",
+      "reasoning": "LLM failed"
+    },
+    "secondary": {
+      "index": -1,
+      "text": "N/A",
+      "reasoning": "LLM failed"
+    },
+    "confidence": 0
+  },
+  "confidence": {
+    "buttons": 0,
+    "colors": 0,
+    "overall": 0
+  }
+}
