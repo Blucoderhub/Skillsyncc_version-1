@@ -1,10 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { User, Trophy, Star, Flame, Award, Calendar, Target, Code2, BookOpen, CheckCircle2 } from "lucide-react";
+import { User, Trophy, Star, Flame, Award, Calendar, Target, Code2, BookOpen, CheckCircle2, Crown, FolderKanban, GraduationCap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useUserStats } from "@/hooks/use-user-stats";
-import type { Badge } from "@shared/schema";
+import { Button } from "@/components/ui/button";
+import type { Badge, User as UserType } from "@shared/schema";
 
 type UserBadge = Badge & { earnedAt: Date };
 
@@ -53,12 +55,12 @@ export default function Profile() {
       <div className="pixel-card p-8 bg-gradient-to-br from-card to-card/50">
         <div className="flex flex-col md:flex-row items-center gap-6">
           <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-4xl font-bold text-white shadow-lg">
-            {(user?.firstName?.[0] || user?.username?.[0] || 'U').toUpperCase()}
+            {(user?.firstName?.[0] || user?.email?.[0] || 'U').toUpperCase()}
           </div>
 
           <div className="flex-grow text-center md:text-left">
             <h1 className="text-3xl font-bold text-foreground">
-              {user?.firstName || user?.username || 'Coder'}
+              {user?.firstName || 'Coder'}
             </h1>
             <p className="text-muted-foreground">
               Level {stats?.level || 1} Architect
@@ -162,6 +164,38 @@ export default function Profile() {
             <p className="text-muted-foreground">No badges available yet. Start solving problems to earn achievements!</p>
           </div>
         )}
+      </div>
+
+      {/* Club Membership Section */}
+      <div className="space-y-4">
+        <h2 className="text-xl font-bold flex items-center gap-2">
+          <Crown className="w-6 h-6 text-primary" />
+          Club Membership
+        </h2>
+
+        <div className="grid md:grid-cols-3 gap-4">
+          <Link href="/pricing">
+            <div className="pixel-card p-6 text-center hover-elevate cursor-pointer transition-all h-full">
+              <Crown className="w-8 h-8 mx-auto mb-3 text-primary" />
+              <h3 className="font-bold mb-2">Upgrade to Club</h3>
+              <p className="text-xs text-muted-foreground">Unlock all courses, certificates, and exclusive perks</p>
+            </div>
+          </Link>
+          <Link href="/certificates">
+            <div className="pixel-card p-6 text-center hover-elevate cursor-pointer transition-all h-full">
+              <GraduationCap className="w-8 h-8 mx-auto mb-3 text-green-500" />
+              <h3 className="font-bold mb-2">My Certificates</h3>
+              <p className="text-xs text-muted-foreground">View and download your earned certificates</p>
+            </div>
+          </Link>
+          <Link href="/portfolio">
+            <div className="pixel-card p-6 text-center hover-elevate cursor-pointer transition-all h-full">
+              <FolderKanban className="w-8 h-8 mx-auto mb-3 text-blue-500" />
+              <h3 className="font-bold mb-2">My Portfolio</h3>
+              <p className="text-xs text-muted-foreground">Showcase your projects to the world</p>
+            </div>
+          </Link>
+        </div>
       </div>
     </div>
   );
