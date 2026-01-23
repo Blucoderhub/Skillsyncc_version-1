@@ -156,11 +156,95 @@ export const hackathons = pgTable("hackathons", {
   tags: text("tags").array(),
 });
 
+// --- CERTIFICATES ---
+
+export const certificates = pgTable("certificates", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  tutorialId: integer("tutorial_id").references(() => tutorials.id),
+  title: text("title").notNull(),
+  description: text("description"),
+  issuedAt: timestamp("issued_at").defaultNow(),
+  certificateUrl: text("certificate_url"),
+  certificateType: text("certificate_type").notNull().default("course"), // 'course', 'challenge', 'achievement'
+});
+
+// --- PROJECTS / PORTFOLIO ---
+
+export const projects = pgTable("projects", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  repoUrl: text("repo_url"),
+  demoUrl: text("demo_url"),
+  imageUrl: text("image_url"),
+  tags: text("tags").array(),
+  visibility: text("visibility").default("public"), // 'public', 'private', 'club_only'
+  likes: integer("likes").default(0),
+  views: integer("views").default(0),
+  featured: boolean("featured").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// --- MONTHLY CHALLENGES ---
+
+export const monthlyChallenges = pgTable("monthly_challenges", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  month: text("month").notNull(), // Format: '2026-01'
+  prize: text("prize"),
+  prizeAmount: integer("prize_amount"),
+  rules: text("rules"),
+  imageUrl: text("image_url"),
+  isClubOnly: boolean("is_club_only").default(false),
+  isActive: boolean("is_active").default(true),
+  startDate: timestamp("start_date"),
+  endDate: timestamp("end_date"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const challengeSubmissions = pgTable("challenge_submissions", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  challengeId: integer("challenge_id").notNull().references(() => monthlyChallenges.id),
+  projectId: integer("project_id").references(() => projects.id),
+  submissionUrl: text("submission_url"),
+  description: text("description"),
+  status: text("status").default("submitted"), // 'submitted', 'reviewed', 'winner', 'honorable_mention'
+  rank: integer("rank"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // --- RELATIONS ---
 export const submissionsRelations = relations(submissions, ({ one }) => ({
   problem: one(problems, {
     fields: [submissions.problemId],
     references: [problems.id],
+  }),
+}));
+
+export const certificatesRelations = relations(certificates, ({ one }) => ({
+  tutorial: one(tutorials, {
+    fields: [certificates.tutorialId],
+    references: [tutorials.id],
+  }),
+}));
+
+export const projectsRelations = relations(projects, ({ many }) => ({
+  challengeSubmissions: many(challengeSubmissions),
+}));
+
+export const challengeSubmissionsRelations = relations(challengeSubmissions, ({ one }) => ({
+  challenge: one(monthlyChallenges, {
+    fields: [challengeSubmissions.challengeId],
+    references: [monthlyChallenges.id],
+  }),
+  project: one(projects, {
+    fields: [challengeSubmissions.projectId],
+    references: [projects.id],
   }),
 }));
 
@@ -187,6 +271,10 @@ export const insertLessonSchema = createInsertSchema(lessons).omit({ id: true })
 export const insertDiscussionSchema = createInsertSchema(discussions).omit({ id: true, createdAt: true, updatedAt: true, views: true, upvotes: true, answersCount: true, isSolved: true });
 export const insertAnswerSchema = createInsertSchema(answers).omit({ id: true, createdAt: true, upvotes: true, isAccepted: true });
 export const insertBadgeSchema = createInsertSchema(badges).omit({ id: true });
+export const insertCertificateSchema = createInsertSchema(certificates).omit({ id: true, issuedAt: true });
+export const insertProjectSchema = createInsertSchema(projects).omit({ id: true, createdAt: true, updatedAt: true, likes: true, views: true, featured: true });
+export const insertMonthlyChallengeSchema = createInsertSchema(monthlyChallenges).omit({ id: true, createdAt: true });
+export const insertChallengeSubmissionSchema = createInsertSchema(challengeSubmissions).omit({ id: true, createdAt: true, status: true, rank: true });
 
 // --- TYPES ---
 export type Problem = typeof problems.$inferSelect;
@@ -204,6 +292,14 @@ export type InsertAnswer = z.infer<typeof insertAnswerSchema>;
 export type Badge = typeof badges.$inferSelect;
 export type UserBadge = typeof userBadges.$inferSelect;
 export type DailyChallenge = typeof dailyChallenges.$inferSelect;
+export type Certificate = typeof certificates.$inferSelect;
+export type InsertCertificate = z.infer<typeof insertCertificateSchema>;
+export type Project = typeof projects.$inferSelect;
+export type InsertProject = z.infer<typeof insertProjectSchema>;
+export type MonthlyChallenge = typeof monthlyChallenges.$inferSelect;
+export type InsertMonthlyChallenge = z.infer<typeof insertMonthlyChallengeSchema>;
+export type ChallengeSubmission = typeof challengeSubmissions.$inferSelect;
+export type InsertChallengeSubmission = z.infer<typeof insertChallengeSubmissionSchema>;
 
 // --- API TYPES ---
 export type ProblemResponse = Problem & { isSolved?: boolean };

@@ -22,6 +22,11 @@ export const users = pgTable("users", {
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   isAdmin: boolean("is_admin").default(false),
+  stripeCustomerId: varchar("stripe_customer_id"),
+  stripeSubscriptionId: varchar("stripe_subscription_id"),
+  membershipStatus: varchar("membership_status").default("free"), // 'free', 'active', 'canceled', 'past_due'
+  membershipTier: varchar("membership_tier").default("free"), // 'free', 'club_monthly', 'club_yearly'
+  membershipExpiresAt: timestamp("membership_expires_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
