@@ -28,9 +28,12 @@ import Certificates from "@/pages/Certificates";
 import Portfolio from "@/pages/Portfolio";
 import Challenges from "@/pages/Challenges";
 import Organizations from "@/pages/Organizations";
+import OrganizationDetail from "@/pages/OrganizationDetail";
 import HackathonDetail from "@/pages/HackathonDetail";
 import ContentEditor from "@/pages/ContentEditor";
 import ContentViewer from "@/pages/ContentViewer";
+import Privacy from "@/pages/Privacy";
+import Terms from "@/pages/Terms";
 import NotFound from "@/pages/not-found";
 
 // Protected Route Wrapper
@@ -131,6 +134,8 @@ function Router() {
       </Route>
 
       <Route path="/pricing" component={Pricing} />
+      <Route path="/privacy" component={Privacy} />
+      <Route path="/terms" component={Terms} />
 
       <Route path="/club/success">
         <ProtectedRoute component={ClubSuccess} />
@@ -146,6 +151,10 @@ function Router() {
 
       <Route path="/challenges">
         <ProtectedRoute component={Challenges} />
+      </Route>
+
+      <Route path="/organizations/:id">
+        <ProtectedRoute component={OrganizationDetail} />
       </Route>
 
       <Route path="/organizations">

@@ -2,8 +2,9 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useUserStats } from "@/hooks/use-user-stats";
 import { useQuery } from "@tanstack/react-query";
-import { Code2, Swords, Trophy, LogOut, Terminal, Map, BookOpen, MessageSquare, Calendar, Shield, Crown, Award, Folder, Target, Building2 } from "lucide-react";
+import { Code2, Swords, Trophy, LogOut, Map, BookOpen, MessageSquare, Calendar, Shield, Crown, Award, Folder, Target, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import logoImg from "@assets/full_margin_white_base_1770730873164.png";
 
 export function Navigation() {
   const [location] = useLocation();
@@ -31,10 +32,8 @@ export function Navigation() {
   return (
     <header className="shrink-0 z-50 w-full border-b-2 border-border bg-background">
       <div className="max-w-full px-2 sm:px-4 py-2 flex h-14 items-center justify-between gap-1">
-        <Link href="/" className="flex items-center gap-2 group shrink-0">
-          <div className="bg-primary p-1.5 rounded-md group-hover:rotate-12 transition-transform">
-            <Terminal className="h-4 w-4 text-white" />
-          </div>
+        <Link href="/" className="flex items-center gap-2 group shrink-0" data-testid="link-home-logo">
+          <img src={logoImg} alt="BlueCoderHub" className="h-9 w-9 rounded-md object-contain group-hover:rotate-12 transition-transform" />
           <span className="font-display text-sm text-primary tracking-tighter hidden lg:block">
             BCH
           </span>

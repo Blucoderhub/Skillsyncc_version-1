@@ -1,6 +1,7 @@
 import { Link } from "wouter";
-import { Terminal, Mail } from "lucide-react";
+import { Mail } from "lucide-react";
 import { SiGithub, SiLinkedin, SiX, SiInstagram, SiDiscord, SiYoutube } from "react-icons/si";
+import logoImg from "@assets/full_margin_white_base_1770730873164.png";
 
 export function Footer() {
   const socialLinks = [
@@ -17,10 +18,8 @@ export function Footer() {
       <div className="retro-container py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="space-y-4">
-            <Link href="/" className="flex items-center gap-3 group">
-              <div className="bg-primary p-2 rounded-lg">
-                <Terminal className="h-6 w-6 text-white" />
-              </div>
+            <Link href="/" className="flex items-center gap-3 group" data-testid="footer-link-home">
+              <img src={logoImg} alt="BlueCoderHub" className="h-10 w-10 rounded-lg object-contain" />
               <span className="font-display text-lg text-primary tracking-tighter">
                 BlueCoder<span className="text-secondary">Hub</span>
               </span>
@@ -87,8 +86,8 @@ export function Footer() {
             &copy; {new Date().getFullYear()} BlueCoderHub. All rights reserved.
           </p>
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
-            <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
-            <Link href="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
+            <Link href="/privacy" className="hover:text-foreground transition-colors" data-testid="footer-link-privacy">Privacy Policy</Link>
+            <Link href="/terms" className="hover:text-foreground transition-colors" data-testid="footer-link-terms">Terms of Service</Link>
           </div>
         </div>
       </div>
