@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
-import { Redirect } from "wouter";
+import { Redirect, useLocation } from "wouter";
 import { 
   Users, BookOpen, Calendar, Code, ChevronRight, Shield, Eye,
-  Plus, Trash2, Edit, Check, X, BarChart3, Building2, Trophy
+  Plus, Trash2, Edit, Check, X, BarChart3, Building2, Trophy,
+  FileEdit, Activity, AlertTriangle, CheckCircle2
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -103,6 +104,27 @@ export default function Admin() {
     enabled: isAdminCheck?.isAdmin && activeTab === "hosted-hackathons",
   });
 
+  const { data: cmsContent } = useQuery<any[]>({
+    queryKey: ["/api/cms/content"],
+    enabled: isAdminCheck?.isAdmin && activeTab === "cms",
+  });
+
+  const { data: healthData } = useQuery<any>({
+    queryKey: ["/api/health"],
+    enabled: isAdminCheck?.isAdmin && activeTab === "monitoring",
+    refetchInterval: 30000,
+  });
+
+  const { data: errorStats } = useQuery<any>({
+    queryKey: ["/api/monitoring/error-stats"],
+    enabled: isAdminCheck?.isAdmin && activeTab === "monitoring",
+  });
+
+  const { data: errorLogs } = useQuery<any[]>({
+    queryKey: ["/api/monitoring/errors"],
+    enabled: isAdminCheck?.isAdmin && activeTab === "monitoring",
+  });
+
   const toggleAdminMutation = useMutation({
     mutationFn: async ({ userId, isAdmin }: { userId: string; isAdmin: boolean }) => {
       return apiRequest("PATCH", `/api/admin/users/${userId}/admin`, { isAdmin });
@@ -152,29 +174,37 @@ export default function Admin() {
       </motion.div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-7 mb-8">
-          <TabsTrigger value="overview" className="gap-2" data-testid="tab-overview">
-            <BarChart3 className="w-4 h-4" /> Overview
-          </TabsTrigger>
-          <TabsTrigger value="users" className="gap-2" data-testid="tab-users">
-            <Users className="w-4 h-4" /> Users
-          </TabsTrigger>
-          <TabsTrigger value="tutorials" className="gap-2" data-testid="tab-tutorials">
-            <BookOpen className="w-4 h-4" /> Tutorials
-          </TabsTrigger>
-          <TabsTrigger value="hackathons" className="gap-2" data-testid="tab-hackathons">
-            <Calendar className="w-4 h-4" /> External
-          </TabsTrigger>
-          <TabsTrigger value="hosted-hackathons" className="gap-2" data-testid="tab-hosted-hackathons">
-            <Trophy className="w-4 h-4" /> Hosted
-          </TabsTrigger>
-          <TabsTrigger value="organizations" className="gap-2" data-testid="tab-organizations">
-            <Building2 className="w-4 h-4" /> Orgs
-          </TabsTrigger>
-          <TabsTrigger value="submissions" className="gap-2" data-testid="tab-submissions">
-            <Code className="w-4 h-4" /> Submissions
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto mb-8">
+          <TabsList className="inline-flex w-auto min-w-full gap-1">
+            <TabsTrigger value="overview" className="gap-2" data-testid="tab-overview">
+              <BarChart3 className="w-4 h-4" /> Overview
+            </TabsTrigger>
+            <TabsTrigger value="users" className="gap-2" data-testid="tab-users">
+              <Users className="w-4 h-4" /> Users
+            </TabsTrigger>
+            <TabsTrigger value="cms" className="gap-2" data-testid="tab-cms">
+              <FileEdit className="w-4 h-4" /> CMS
+            </TabsTrigger>
+            <TabsTrigger value="tutorials" className="gap-2" data-testid="tab-tutorials">
+              <BookOpen className="w-4 h-4" /> Tutorials
+            </TabsTrigger>
+            <TabsTrigger value="hackathons" className="gap-2" data-testid="tab-hackathons">
+              <Calendar className="w-4 h-4" /> External
+            </TabsTrigger>
+            <TabsTrigger value="hosted-hackathons" className="gap-2" data-testid="tab-hosted-hackathons">
+              <Trophy className="w-4 h-4" /> Hosted
+            </TabsTrigger>
+            <TabsTrigger value="organizations" className="gap-2" data-testid="tab-organizations">
+              <Building2 className="w-4 h-4" /> Orgs
+            </TabsTrigger>
+            <TabsTrigger value="submissions" className="gap-2" data-testid="tab-submissions">
+              <Code className="w-4 h-4" /> Submissions
+            </TabsTrigger>
+            <TabsTrigger value="monitoring" className="gap-2" data-testid="tab-monitoring">
+              <Activity className="w-4 h-4" /> Health
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="overview">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
@@ -307,6 +337,14 @@ export default function Admin() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="cms">
+          <CmsManagement content={cmsContent || []} />
+        </TabsContent>
+
+        <TabsContent value="monitoring">
+          <MonitoringDashboard healthData={healthData} errorStats={errorStats} errorLogs={errorLogs || []} />
         </TabsContent>
       </Tabs>
     </main>
@@ -804,6 +842,193 @@ function SubmissionRow({ submission }: { submission: Submission }) {
           </div>
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+function CmsManagement({ content }: { content: any[] }) {
+  const [, navigate] = useLocation();
+  const { toast } = useToast();
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/cms/content/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/cms/content"] });
+      toast({ title: "Content deleted" });
+    },
+  });
+
+  const publishMutation = useMutation({
+    mutationFn: (id: number) => apiRequest("POST", `/api/cms/content/${id}/publish`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/cms/content"] });
+      toast({ title: "Content published" });
+    },
+  });
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between gap-2">
+        <div>
+          <CardTitle>Content Management</CardTitle>
+          <CardDescription>Create and manage tutorials, guides, and educational content</CardDescription>
+        </div>
+        <Button onClick={() => navigate("/cms/new")} data-testid="btn-create-content">
+          <Plus className="w-4 h-4 mr-2" /> New Content
+        </Button>
+      </CardHeader>
+      <CardContent>
+        {content.length === 0 ? (
+          <p className="text-center text-muted-foreground py-8">No content yet. Create your first piece of content.</p>
+        ) : (
+          <div className="space-y-3">
+            {content.map((item) => (
+              <div key={item.id} className="flex items-center justify-between p-4 rounded-lg bg-muted/50 border border-border" data-testid={`cms-item-${item.id}`}>
+                <div className="flex items-center gap-3 min-w-0">
+                  <FileEdit className="w-5 h-5 text-primary shrink-0" />
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{item.title}</p>
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      <Badge variant={item.status === "published" ? "default" : "secondary"} className="text-xs">
+                        {item.status}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">{item.contentType}</Badge>
+                      <Badge variant="outline" className="text-xs">{item.category}</Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {item.updatedAt ? new Date(item.updatedAt).toLocaleDateString() : ""}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  {item.status !== "published" && (
+                    <Button size="icon" variant="ghost" onClick={() => publishMutation.mutate(item.id)} disabled={publishMutation.isPending} data-testid={`btn-publish-${item.id}`}>
+                      <CheckCircle2 className="w-4 h-4 text-green-500" />
+                    </Button>
+                  )}
+                  <Button size="icon" variant="ghost" onClick={() => navigate(`/cms/edit/${item.id}`)} data-testid={`btn-edit-${item.id}`}>
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                  <Button size="icon" variant="ghost" onClick={() => deleteMutation.mutate(item.id)} disabled={deleteMutation.isPending} data-testid={`btn-delete-${item.id}`}>
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function MonitoringDashboard({ healthData, errorStats, errorLogs }: { healthData: any; errorStats: any; errorLogs: any[] }) {
+  const { toast } = useToast();
+
+  const resolveMutation = useMutation({
+    mutationFn: (id: number) => apiRequest("POST", `/api/monitoring/errors/${id}/resolve`, { fixApplied: "Manually resolved" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/monitoring/errors"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/monitoring/error-stats"] });
+      toast({ title: "Error resolved" });
+    },
+  });
+
+  const statusColor = healthData?.status === "healthy" ? "text-green-500" : healthData?.status === "warning" ? "text-yellow-500" : "text-destructive";
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="pt-6 text-center">
+            <Activity className={cn("w-8 h-8 mx-auto mb-2", statusColor)} />
+            <p className="text-sm font-medium">System Status</p>
+            <p className={cn("text-lg font-bold capitalize", statusColor)}>{healthData?.status || "Unknown"}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6 text-center">
+            <p className="text-sm font-medium text-muted-foreground">CPU Usage</p>
+            <p className="text-2xl font-bold">{healthData?.cpu ?? "--"}%</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6 text-center">
+            <p className="text-sm font-medium text-muted-foreground">Memory Usage</p>
+            <p className="text-2xl font-bold">{healthData?.memory ?? "--"}%</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6 text-center">
+            <p className="text-sm font-medium text-muted-foreground">Uptime</p>
+            <p className="text-2xl font-bold">{healthData?.uptime ? `${Math.floor(healthData.uptime / 3600)}h` : "--"}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardContent className="pt-6 text-center">
+            <AlertTriangle className="w-6 h-6 text-destructive mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">Total Errors</p>
+            <p className="text-2xl font-bold">{errorStats?.total || 0}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6 text-center">
+            <X className="w-6 h-6 text-yellow-500 mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">Unresolved</p>
+            <p className="text-2xl font-bold">{errorStats?.unresolved || 0}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6 text-center">
+            <CheckCircle2 className="w-6 h-6 text-green-500 mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">Auto-Fixed</p>
+            <p className="text-2xl font-bold">{errorStats?.autoFixed || 0}</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Errors</CardTitle>
+          <CardDescription>Application error log with resolution tracking</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {errorLogs.length === 0 ? (
+            <div className="text-center py-8">
+              <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-2" />
+              <p className="text-muted-foreground">No errors logged. System is running smoothly.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {errorLogs.slice(0, 20).map((err: any) => (
+                <div key={err.id} className="flex items-start justify-between p-3 rounded-lg bg-muted/50 border border-border gap-3" data-testid={`error-row-${err.id}`}>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge variant={err.severity === "critical" ? "destructive" : "secondary"} className="text-xs">{err.severity}</Badge>
+                      <Badge variant="outline" className="text-xs">{err.errorType}</Badge>
+                      {err.isResolved && <Badge className="text-xs bg-green-500/20 text-green-400">Resolved</Badge>}
+                      <span className="text-xs text-muted-foreground">x{err.occurrences}</span>
+                    </div>
+                    <p className="text-sm mt-1 truncate">{err.errorMessage}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Last: {err.lastOccurred ? new Date(err.lastOccurred).toLocaleString() : "Unknown"}
+                      {err.endpoint && ` | ${err.endpoint}`}
+                    </p>
+                  </div>
+                  {!err.isResolved && (
+                    <Button size="sm" variant="outline" onClick={() => resolveMutation.mutate(err.id)} disabled={resolveMutation.isPending} data-testid={`btn-resolve-${err.id}`}>
+                      <Check className="w-3 h-3 mr-1" /> Resolve
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

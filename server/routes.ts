@@ -6,9 +6,30 @@ import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integra
 import { registerChatRoutes } from "./replit_integrations/chat";
 import { registerImageRoutes } from "./replit_integrations/image";
 import { registerAudioRoutes } from "./replit_integrations/audio";
-import { registerAdminRoutes } from "./admin-routes";
+import { registerAdminRoutes, isAdmin } from "./admin-routes";
 import { initStripe, registerStripeRoutes, registerStripeWebhookRoute } from "./stripe/stripeRoutes";
 import { z } from "zod";
+import os from "os";
+
+// Error logging middleware
+const errorLoggingMiddleware = (app: Express) => {
+  app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+    const errorData = {
+      errorType: err.name || "UnhandledError",
+      errorMessage: err.message || "Unknown error",
+      stackTrace: err.stack || null,
+      endpoint: `${req.method} ${req.path}`,
+      severity: res.statusCode >= 500 ? "critical" : "warning" as string,
+      userId: (req as any).user?.claims?.sub || null,
+    };
+
+    storage.logError(errorData).catch(console.error);
+
+    if (!res.headersSent) {
+      res.status(err.status || 500).json({ error: err.message || "Internal server error" });
+    }
+  });
+};
 
 // Middleware to check if user has active Club membership
 const isClubMember = async (req: Request, res: Response, next: NextFunction) => {
@@ -822,6 +843,223 @@ export async function registerRoutes(
   // ==========================================
   // END HACKATHON HOSTING ROUTES
   // ==========================================
+
+  // ==========================================
+  // CMS CONTENT ROUTES
+  // ==========================================
+
+  app.get("/api/cms/content", async (req: Request, res: Response) => {
+    const { status, contentType, category } = req.query;
+    const content = await storage.getAllCmsContent({
+      status: status as string | undefined,
+      contentType: contentType as string | undefined,
+      category: category as string | undefined,
+    });
+    res.json(content);
+  });
+
+  app.get("/api/cms/published", async (req: Request, res: Response) => {
+    const { category, contentType } = req.query;
+    const content = await storage.getPublishedContent({
+      category: category as string | undefined,
+      contentType: contentType as string | undefined,
+    });
+    res.json(content);
+  });
+
+  app.get("/api/cms/content/:id", async (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    const content = await storage.getCmsContentById(id);
+    if (!content) return res.status(404).json({ error: "Content not found" });
+    await storage.incrementContentViews(id);
+    res.json(content);
+  });
+
+  app.get("/api/cms/content/slug/:slug", async (req: Request, res: Response) => {
+    const content = await storage.getCmsContentBySlug(req.params.slug);
+    if (!content) return res.status(404).json({ error: "Content not found" });
+    await storage.incrementContentViews(content.id);
+    res.json(content);
+  });
+
+  app.post("/api/cms/content", isAuthenticated, async (req: Request, res: Response) => {
+    const userId = (req as any).user?.claims?.sub;
+    const { title, contentType, templateType, contentJson, category, subCategory, tags, difficultyLevel, estimatedMinutes, metaTitle, metaDescription, isPremium, status } = req.body;
+
+    if (!title || !contentJson) {
+      return res.status(400).json({ error: "Title and content are required" });
+    }
+
+    const slug = title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').replace(/-+/g, '-');
+    const existing = await storage.getCmsContentBySlug(slug);
+    const finalSlug = existing ? `${slug}-${Date.now()}` : slug;
+
+    const content = await storage.createCmsContent({
+      title,
+      slug: finalSlug,
+      contentType: contentType || "tutorial",
+      templateType: templateType || "standard_tutorial",
+      contentJson,
+      category: category || "web-development",
+      subCategory: subCategory || null,
+      tags: tags || [],
+      difficultyLevel: difficultyLevel || "beginner",
+      estimatedMinutes: estimatedMinutes || null,
+      metaTitle: metaTitle || null,
+      metaDescription: metaDescription || null,
+      isPremium: isPremium || false,
+      authorId: userId,
+      status: status || "draft",
+      scheduledFor: null,
+    });
+
+    await storage.createContentVersion(content.id, contentJson, userId, "Initial version");
+    res.json(content);
+  });
+
+  app.patch("/api/cms/content/:id", isAuthenticated, async (req: Request, res: Response) => {
+    const userId = (req as any).user?.claims?.sub;
+    const id = parseInt(req.params.id);
+    const { contentJson, isAutoSave, changeLog, ...updates } = req.body;
+
+    const existing = await storage.getCmsContentById(id);
+    if (!existing) return res.status(404).json({ error: "Content not found" });
+
+    const updateData: any = { ...updates };
+    if (contentJson) updateData.contentJson = contentJson;
+
+    const updated = await storage.updateCmsContent(id, updateData);
+
+    if (contentJson && !isAutoSave) {
+      await storage.createContentVersion(id, contentJson, userId, changeLog || `Updated`);
+    }
+
+    res.json(updated);
+  });
+
+  app.post("/api/cms/content/:id/publish", isAuthenticated, async (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    const existing = await storage.getCmsContentById(id);
+    if (!existing) return res.status(404).json({ error: "Content not found" });
+
+    const published = await storage.publishCmsContent(id);
+    res.json(published);
+  });
+
+  app.delete("/api/cms/content/:id", isAuthenticated, async (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    await storage.deleteCmsContent(id);
+    res.json({ success: true });
+  });
+
+  app.get("/api/cms/content/:id/versions", async (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    const versions = await storage.getContentVersions(id);
+    res.json(versions);
+  });
+
+  app.post("/api/cms/content/:id/restore/:versionNumber", isAuthenticated, async (req: Request, res: Response) => {
+    const userId = (req as any).user?.claims?.sub;
+    const id = parseInt(req.params.id);
+    const versionNumber = parseInt(req.params.versionNumber);
+
+    const version = await storage.getContentVersion(id, versionNumber);
+    if (!version) return res.status(404).json({ error: "Version not found" });
+
+    const restored = await storage.updateCmsContent(id, { contentJson: version.contentJson as any });
+    await storage.createContentVersion(id, version.contentJson, userId, `Restored to version ${versionNumber}`);
+
+    res.json(restored);
+  });
+
+  app.get("/api/cms/content/:id/analytics", async (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    const analytics = await storage.getContentAnalytics(id);
+    res.json(analytics || { views: 0, completions: 0 });
+  });
+
+  app.post("/api/cms/content/:id/complete", isAuthenticated, async (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    await storage.incrementContentCompletions(id);
+    res.json({ success: true });
+  });
+
+  // ==========================================
+  // HEALTH & MONITORING ROUTES
+  // ==========================================
+
+  app.get("/api/health", async (_req: Request, res: Response) => {
+    const cpus = os.cpus();
+    let totalIdle = 0, totalTick = 0;
+    cpus.forEach((cpu: any) => {
+      for (const type in cpu.times) totalTick += cpu.times[type];
+      totalIdle += cpu.times.idle;
+    });
+    const cpuUsage = 100 - Math.round(100 * (totalIdle / cpus.length) / (totalTick / cpus.length));
+    const totalMem = os.totalmem();
+    const freeMem = os.freemem();
+    const memoryUsage = Math.round(((totalMem - freeMem) / totalMem) * 100);
+
+    let dbHealthy = true;
+    try {
+      await storage.getAllProblems();
+    } catch {
+      dbHealthy = false;
+    }
+
+    const status = !dbHealthy ? "critical" : (cpuUsage > 90 || memoryUsage > 90) ? "warning" : "healthy";
+
+    await storage.recordMetric({ metricType: "cpu_usage", value: cpuUsage, unit: "percentage" });
+    await storage.recordMetric({ metricType: "memory_usage", value: memoryUsage, unit: "percentage" });
+
+    res.json({
+      status,
+      uptime: process.uptime(),
+      cpu: cpuUsage,
+      memory: memoryUsage,
+      database: dbHealthy ? "healthy" : "unhealthy",
+      timestamp: new Date(),
+    });
+  });
+
+  app.get("/api/monitoring/errors", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
+    const { isResolved, severity, errorType } = req.query;
+    const errors = await storage.getErrorLogs({
+      isResolved: isResolved === "true" ? true : isResolved === "false" ? false : undefined,
+      severity: severity as string | undefined,
+      errorType: errorType as string | undefined,
+    });
+    res.json(errors);
+  });
+
+  app.get("/api/monitoring/error-stats", isAuthenticated, isAdmin, async (_req: Request, res: Response) => {
+    const stats = await storage.getErrorStats();
+    res.json(stats);
+  });
+
+  app.post("/api/monitoring/errors/:id/resolve", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    const { fixApplied } = req.body;
+    await storage.resolveError(id, fixApplied);
+    res.json({ success: true });
+  });
+
+  app.get("/api/monitoring/metrics/:type", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
+    const metrics = await storage.getRecentMetrics(req.params.type, 100);
+    res.json(metrics);
+  });
+
+  app.get("/api/monitoring/auto-fixes", isAuthenticated, isAdmin, async (_req: Request, res: Response) => {
+    const logs = await storage.getAutoFixLogs(100);
+    res.json(logs);
+  });
+
+  // ==========================================
+  // END CMS & MONITORING ROUTES
+  // ==========================================
+
+  // Error logging middleware
+  errorLoggingMiddleware(app);
 
   // Seed Data
   await seedDatabase();

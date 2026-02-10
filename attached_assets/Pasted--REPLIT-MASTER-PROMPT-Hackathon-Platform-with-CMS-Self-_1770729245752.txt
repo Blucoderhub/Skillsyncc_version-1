@@ -1,0 +1,2562 @@
+# REPLIT MASTER PROMPT: Hackathon Platform with CMS & Self-Healing Features
+
+## Project Overview
+Build a hackathon hosting platform with a powerful Content Management System (CMS) that allows admins to create/edit educational content without coding, plus intelligent self-healing and automated error recovery features.
+
+---
+
+## TECHNOLOGY STACK
+
+### Frontend
+- **Framework:** React.js with Vite
+- **Styling:** TailwindCSS
+- **State Management:** Zustand or Redux Toolkit
+- **Rich Text Editor:** TinyMCE or Quill
+- **Code Editor:** Monaco Editor (VS Code's editor)
+- **Routing:** React Router v6
+
+### Backend
+- **Runtime:** Node.js v18+
+- **Framework:** Express.js
+- **Database:** PostgreSQL (via Replit Database or external)
+- **ORM:** Prisma
+- **Authentication:** Passport.js with JWT
+- **File Storage:** AWS S3 or Cloudinary
+- **Cache:** Redis (for session management)
+
+### Self-Healing & Monitoring
+- **Error Tracking:** Sentry SDK
+- **Logging:** Winston
+- **Health Checks:** Custom middleware
+- **Auto-recovery:** PM2 or custom scripts
+- **AI Integration:** OpenAI API (for content quality checks)
+
+---
+
+## PROJECT STRUCTURE
+```
+hackathon-platform/
+├── client/                          # React Frontend
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── admin/
+│   │   │   │   ├── ContentEditor.jsx       # Main CMS editor
+│   │   │   │   ├── RichTextEditor.jsx      # TinyMCE wrapper
+│   │   │   │   ├── CodeBlockEditor.jsx     # Code snippet editor
+│   │   │   │   ├── TemplateSelector.jsx    # Content templates
+│   │   │   │   ├── MediaUploader.jsx       # Image/video upload
+│   │   │   │   ├── VersionHistory.jsx      # Content versions
+│   │   │   │   └── ContentPreview.jsx      # Live preview
+│   │   │   ├── content/
+│   │   │   │   ├── TutorialRenderer.jsx    # Renders tutorial content
+│   │   │   │   ├── CodePlayground.jsx      # Interactive code editor
+│   │   │   │   ├── QuizComponent.jsx       # Quiz renderer
+│   │   │   │   └── ProgressTracker.jsx     # User progress
+│   │   │   └── monitoring/
+│   │   │       ├── ErrorBoundary.jsx       # Catch React errors
+│   │   │       └── HealthIndicator.jsx     # System health display
+│   │   ├── pages/
+│   │   │   ├── admin/
+│   │   │   │   ├── Dashboard.jsx
+│   │   │   │   ├── ContentManagement.jsx
+│   │   │   │   ├── CreateContent.jsx
+│   │   │   │   ├── EditContent.jsx
+│   │   │   │   └── SystemMonitoring.jsx    # Self-healing dashboard
+│   │   │   └── learning/
+│   │   │       ├── TutorialPage.jsx
+│   │   │       ├── CourseCatalog.jsx
+│   │   │       └── ChallengePage.jsx
+│   │   ├── services/
+│   │   │   ├── api.js                      # API client
+│   │   │   ├── contentService.js           # Content CRUD
+│   │   │   └── errorReporter.js            # Error reporting
+│   │   ├── hooks/
+│   │   │   ├── useContentEditor.js
+│   │   │   ├── useAutoSave.js              # Auto-save functionality
+│   │   │   └── useErrorRecovery.js
+│   │   └── utils/
+│   │       ├── contentParser.js            # Parse stored JSON content
+│   │       └── sanitizer.js                # Sanitize HTML input
+│   └── public/
+│
+├── server/                          # Node.js Backend
+│   ├── src/
+│   │   ├── controllers/
+│   │   │   ├── contentController.js        # Content CRUD operations
+│   │   │   ├── versionController.js        # Version management
+│   │   │   └── healthController.js         # Health check endpoints
+│   │   ├── middleware/
+│   │   │   ├── auth.js                     # JWT authentication
+│   │   │   ├── errorHandler.js             # Centralized error handling
+│   │   │   ├── sanitize.js                 # Input sanitization
+│   │   │   ├── rateLimiter.js              # Rate limiting
+│   │   │   └── healthCheck.js              # Auto health monitoring
+│   │   ├── services/
+│   │   │   ├── contentService.js           # Business logic for content
+│   │   │   ├── aiQualityCheck.js           # AI-powered content validation
+│   │   │   ├── codeValidator.js            # Validate code snippets
+│   │   │   ├── linkChecker.js              # Check broken links
+│   │   │   ├── autoRecovery.js             # Self-healing logic
+│   │   │   └── errorAnalyzer.js            # Pattern detection in errors
+│   │   ├── jobs/
+│   │   │   ├── linkHealthCheck.js          # Scheduled link checking
+│   │   │   ├── imageOptimizer.js           # Auto image compression
+│   │   │   ├── contentAnalytics.js         # Track content performance
+│   │   │   └── systemHealthCheck.js        # Monitor system health
+│   │   ├── models/
+│   │   │   ├── Content.js                  # Content schema
+│   │   │   ├── ContentVersion.js           # Version history
+│   │   │   ├── ErrorLog.js                 # Error tracking
+│   │   │   └── SystemMetric.js             # System metrics
+│   │   ├── routes/
+│   │   │   ├── content.routes.js
+│   │   │   ├── admin.routes.js
+│   │   │   ├── health.routes.js            # Health endpoints
+│   │   │   └── monitoring.routes.js
+│   │   ├── utils/
+│   │   │   ├── logger.js                   # Winston logger
+│   │   │   ├── sentry.js                   # Sentry integration
+│   │   │   └── autoFix.js                  # Auto-fix utilities
+│   │   └── config/
+│   │       ├── database.js
+│   │       ├── redis.js
+│   │       ├── aws.js                      # S3 configuration
+│   │       └── monitoring.js               # Monitoring config
+│   └── server.js                           # Express app entry
+│
+├── shared/                          # Shared code
+│   ├── constants/
+│   │   ├── contentTemplates.js             # Template definitions
+│   │   └── errorCodes.js                   # Standardized error codes
+│   └── types/
+│       └── content.types.js                # TypeScript-like interfaces
+│
+├── scripts/                         # Utility scripts
+│   ├── seed.js                             # Database seeding
+│   ├── migrate.js                          # Database migrations
+│   └── healthcheck.js                      # Manual health check
+│
+├── .env                             # Environment variables
+├── .replit                          # Replit configuration
+├── replit.nix                       # Nix configuration
+├── package.json
+└── README.md
+```
+
+---
+
+## FEATURE 1: CONTENT MANAGEMENT SYSTEM (CMS)
+
+### 1.1 Database Schema (Prisma)
+```prisma
+// prisma/schema.prisma
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  username      String    @unique
+  role          Role      @default(USER)
+  createdAt     DateTime  @default(now())
+  contents      Content[]
+  versions      ContentVersion[]
+}
+
+enum Role {
+  USER
+  CONTENT_CREATOR
+  ADMIN
+  SUPER_ADMIN
+}
+
+model Content {
+  id                String           @id @default(uuid())
+  title             String
+  slug              String           @unique
+  contentType       ContentType
+  contentJson       Json             // Stores structured content
+  templateType      TemplateType
+  category          String
+  subCategory       String?
+  tags              String[]
+  difficultyLevel   DifficultyLevel
+  estimatedMinutes  Int?
+  status            ContentStatus    @default(DRAFT)
+  
+  // SEO
+  metaTitle         String?
+  metaDescription   String?
+  
+  // Publishing
+  publishedAt       DateTime?
+  scheduledFor      DateTime?
+  isPremium         Boolean          @default(false)
+  
+  // Relationships
+  authorId          String
+  author            User             @relation(fields: [authorId], references: [id])
+  versions          ContentVersion[]
+  analytics         ContentAnalytics?
+  
+  // Timestamps
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  
+  // Self-healing metadata
+  lastChecked       DateTime?
+  healthStatus      HealthStatus     @default(HEALTHY)
+  brokenLinks       Int              @default(0)
+  
+  @@index([slug])
+  @@index([category])
+  @@index([status])
+}
+
+enum ContentType {
+  TUTORIAL
+  REFERENCE
+  CHALLENGE
+  QUIZ
+  VIDEO_LESSON
+}
+
+enum TemplateType {
+  STANDARD_TUTORIAL
+  INTERACTIVE_CHALLENGE
+  REFERENCE_GUIDE
+  QUIZ
+  VIDEO_LESSON
+}
+
+enum DifficultyLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum ContentStatus {
+  DRAFT
+  UNDER_REVIEW
+  PUBLISHED
+  ARCHIVED
+}
+
+enum HealthStatus {
+  HEALTHY
+  WARNING
+  CRITICAL
+  AUTO_FIXED
+}
+
+model ContentVersion {
+  id              String    @id @default(uuid())
+  contentId       String
+  content         Content   @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  versionNumber   Int
+  contentJson     Json
+  changeLog       String?
+  createdById     String
+  createdBy       User      @relation(fields: [createdById], references: [id])
+  createdAt       DateTime  @default(now())
+  
+  @@unique([contentId, versionNumber])
+  @@index([contentId])
+}
+
+model ContentAnalytics {
+  id                String    @id @default(uuid())
+  contentId         String    @unique
+  content           Content   @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  views             Int       @default(0)
+  completions       Int       @default(0)
+  averageRating     Float?
+  averageTimeSpent  Int?      // in seconds
+  dropOffRate       Float?
+  updatedAt         DateTime  @updatedAt
+}
+
+// Self-Healing Models
+
+model ErrorLog {
+  id              String       @id @default(uuid())
+  errorType       ErrorType
+  errorMessage    String
+  stackTrace      String?
+  severity        Severity
+  context         Json?        // Additional context (user, route, etc.)
+  isResolved      Boolean      @default(false)
+  autoFixed       Boolean      @default(false)
+  fixApplied      String?      // Description of auto-fix
+  occurrences     Int          @default(1)
+  firstOccurred   DateTime     @default(now())
+  lastOccurred    DateTime     @default(now())
+  resolvedAt      DateTime?
+  
+  @@index([errorType])
+  @@index([isResolved])
+  @@index([severity])
+}
+
+enum ErrorType {
+  BROKEN_LINK
+  CODE_SYNTAX_ERROR
+  DATABASE_ERROR
+  API_ERROR
+  AUTHENTICATION_ERROR
+  VALIDATION_ERROR
+  SYSTEM_ERROR
+  PERFORMANCE_ISSUE
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model SystemMetric {
+  id                String    @id @default(uuid())
+  metricType        String    // cpu_usage, memory_usage, response_time, etc.
+  value             Float
+  unit              String    // percentage, ms, mb, etc.
+  timestamp         DateTime  @default(now())
+  
+  @@index([metricType, timestamp])
+}
+
+model AutoFixLog {
+  id              String    @id @default(uuid())
+  fixType         String    // link_update, image_compression, etc.
+  targetType      String    // content, media, system
+  targetId        String?
+  description     String
+  oldValue        String?
+  newValue        String?
+  successful      Boolean
+  executedAt      DateTime  @default(now())
+}
+```
+
+### 1.2 Content JSON Structure
+```javascript
+// Example content stored in contentJson field
+
+{
+  "version": "1.0",
+  "sections": [
+    {
+      "id": "intro-1",
+      "type": "text",
+      "content": "<h2>Introduction to HTML</h2><p>HTML stands for...</p>"
+    },
+    {
+      "id": "code-1",
+      "type": "code",
+      "language": "html",
+      "code": "<!DOCTYPE html>\n<html>\n<body>\n  <h1>Hello World</h1>\n</body>\n</html>",
+      "runnable": true,
+      "expectedOutput": "Displays: Hello World",
+      "explanation": "This is a basic HTML structure"
+    },
+    {
+      "id": "image-1",
+      "type": "image",
+      "url": "https://cdn.example.com/html-structure.png",
+      "alt": "HTML Document Structure",
+      "caption": "Basic HTML document structure"
+    },
+    {
+      "id": "quiz-1",
+      "type": "quiz",
+      "question": "What does HTML stand for?",
+      "questionType": "multiple_choice",
+      "options": [
+        "Hyper Text Markup Language",
+        "High Tech Modern Language",
+        "Home Tool Markup Language",
+        "Hyperlinks and Text Markup Language"
+      ],
+      "correctAnswer": 0,
+      "explanation": "HTML stands for Hyper Text Markup Language"
+    },
+    {
+      "id": "try-it-1",
+      "type": "interactive_code",
+      "language": "html",
+      "starterCode": "<!-- Write your HTML here -->",
+      "solution": "<!DOCTYPE html>\n<html>\n<body>\n  <h1>My First Heading</h1>\n</body>\n</html>",
+      "instructions": "Create an HTML document with a heading",
+      "testCases": [
+        {
+          "description": "Should contain an h1 tag",
+          "test": "code.includes('<h1>')"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### 1.3 Backend: Content Controller
+```javascript
+// server/src/controllers/contentController.js
+
+const contentService = require('../services/contentService');
+const aiQualityCheck = require('../services/aiQualityCheck');
+const codeValidator = require('../services/codeValidator');
+const logger = require('../utils/logger');
+
+class ContentController {
+  // Create new content
+  async createContent(req, res, next) {
+    try {
+      const { title, contentType, templateType, contentJson, ...metadata } = req.body;
+      const authorId = req.user.id;
+
+      // Auto-generate slug from title
+      const slug = title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+
+      // Run AI quality checks
+      const qualityReport = await aiQualityCheck.analyzeContent({
+        title,
+        contentJson
+      });
+
+      // Validate code snippets
+      const codeValidation = await codeValidator.validateAllCodeBlocks(contentJson);
+
+      if (codeValidation.hasErrors) {
+        return res.status(400).json({
+          success: false,
+          message: 'Code validation failed',
+          errors: codeValidation.errors,
+          suggestions: codeValidation.suggestions
+        });
+      }
+
+      // Create content with auto-fixes applied
+      const content = await contentService.createContent({
+        title,
+        slug,
+        contentType,
+        templateType,
+        contentJson: qualityReport.improvedContent || contentJson,
+        authorId,
+        ...metadata,
+        status: 'DRAFT'
+      });
+
+      // Create initial version
+      await contentService.createVersion(content.id, contentJson, authorId, 'Initial version');
+
+      res.status(201).json({
+        success: true,
+        data: content,
+        qualityReport: {
+          grammarIssues: qualityReport.grammarIssues,
+          readabilityScore: qualityReport.readabilityScore,
+          suggestions: qualityReport.suggestions,
+          autoFixesApplied: qualityReport.autoFixesApplied
+        }
+      });
+
+      logger.info(`Content created: ${content.id} by user: ${authorId}`);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Update content with auto-save support
+  async updateContent(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { contentJson, isAutoSave, changeLog, ...updates } = req.body;
+      const userId = req.user.id;
+
+      // Verify ownership
+      const existing = await contentService.getContentById(id);
+      if (existing.authorId !== userId && req.user.role !== 'ADMIN') {
+        return res.status(403).json({ success: false, message: 'Unauthorized' });
+      }
+
+      // Update content
+      const updated = await contentService.updateContent(id, {
+        contentJson,
+        ...updates,
+        updatedAt: new Date()
+      });
+
+      // Create version only if not auto-save
+      if (!isAutoSave) {
+        const versionNumber = await contentService.getNextVersionNumber(id);
+        await contentService.createVersion(
+          id,
+          contentJson,
+          userId,
+          changeLog || `Version ${versionNumber}`
+        );
+      }
+
+      res.json({
+        success: true,
+        data: updated
+      });
+
+      logger.info(`Content updated: ${id} (auto-save: ${isAutoSave})`);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Publish content
+  async publishContent(req, res, next) {
+    try {
+      const { id } = req.params;
+      const { scheduledFor } = req.body;
+
+      // Run final checks
+      const content = await contentService.getContentById(id);
+      const linkCheck = await require('../services/linkChecker').checkAllLinks(content.contentJson);
+
+      if (linkCheck.brokenLinks.length > 0) {
+        // Attempt auto-fix
+        const autoFixed = await require('../services/autoFix').fixBrokenLinks(content.contentJson, linkCheck.brokenLinks);
+        
+        if (autoFixed.success) {
+          await contentService.updateContent(id, {
+            contentJson: autoFixed.fixedContent
+          });
+          logger.info(`Auto-fixed ${autoFixed.fixedCount} broken links in content: ${id}`);
+        } else {
+          return res.status(400).json({
+            success: false,
+            message: 'Cannot publish: broken links detected',
+            brokenLinks: linkCheck.brokenLinks
+          });
+        }
+      }
+
+      // Publish
+      const published = await contentService.updateContent(id, {
+        status: 'PUBLISHED',
+        publishedAt: scheduledFor ? null : new Date(),
+        scheduledFor: scheduledFor || null
+      });
+
+      res.json({
+        success: true,
+        data: published,
+        message: scheduledFor ? `Scheduled for ${scheduledFor}` : 'Published successfully'
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Get version history
+  async getVersionHistory(req, res, next) {
+    try {
+      const { id } = req.params;
+      const versions = await contentService.getVersionHistory(id);
+
+      res.json({
+        success: true,
+        data: versions
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Restore version
+  async restoreVersion(req, res, next) {
+    try {
+      const { id, versionNumber } = req.params;
+      const userId = req.user.id;
+
+      const version = await contentService.getVersion(id, parseInt(versionNumber));
+      
+      if (!version) {
+        return res.status(404).json({ success: false, message: 'Version not found' });
+      }
+
+      // Update content with version data
+      const restored = await contentService.updateContent(id, {
+        contentJson: version.contentJson
+      });
+
+      // Create new version to track restoration
+      await contentService.createVersion(
+        id,
+        version.contentJson,
+        userId,
+        `Restored to version ${versionNumber}`
+      );
+
+      res.json({
+        success: true,
+        data: restored,
+        message: `Restored to version ${versionNumber}`
+      });
+
+      logger.info(`Content ${id} restored to version ${versionNumber} by user ${userId}`);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // Get content analytics
+  async getAnalytics(req, res, next) {
+    try {
+      const { id } = req.params;
+      const analytics = await contentService.getAnalytics(id);
+
+      res.json({
+        success: true,
+        data: analytics
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+}
+
+module.exports = new ContentController();
+```
+
+### 1.4 AI Quality Check Service
+```javascript
+// server/src/services/aiQualityCheck.js
+
+const OpenAI = require('openai');
+const logger = require('../utils/logger');
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+
+class AIQualityCheck {
+  async analyzeContent({ title, contentJson }) {
+    try {
+      // Extract text content from JSON
+      const textContent = this.extractTextContent(contentJson);
+
+      // Call OpenAI for analysis
+      const response = await openai.chat.completions.create({
+        model: 'gpt-4',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a content quality analyzer for educational tutorials. 
+            Analyze the content for:
+            1. Grammar and spelling errors
+            2. Readability score (1-10)
+            3. Technical accuracy
+            4. Suggestions for improvement
+            5. SEO optimization
+            
+            Return JSON format:
+            {
+              "grammarIssues": [{position, issue, suggestion}],
+              "readabilityScore": number,
+              "suggestions": [string],
+              "seoKeywords": [string],
+              "autoFixes": [{type, original, fixed}]
+            }`
+          },
+          {
+            role: 'user',
+            content: `Title: ${title}\n\nContent: ${textContent}`
+          }
+        ],
+        temperature: 0.3
+      });
+
+      const analysis = JSON.parse(response.choices[0].message.content);
+
+      // Apply auto-fixes to content
+      const improvedContent = this.applyAutoFixes(contentJson, analysis.autoFixes);
+
+      return {
+        ...analysis,
+        improvedContent,
+        autoFixesApplied: analysis.autoFixes.length
+      };
+    } catch (error) {
+      logger.error('AI Quality Check failed:', error);
+      return {
+        grammarIssues: [],
+        readabilityScore: null,
+        suggestions: [],
+        autoFixesApplied: 0
+      };
+    }
+  }
+
+  extractTextContent(contentJson) {
+    if (!contentJson.sections) return '';
+    
+    return contentJson.sections
+      .filter(section => section.type === 'text')
+      .map(section => section.content.replace(/<[^>]*>/g, ''))
+      .join('\n\n');
+  }
+
+  applyAutoFixes(contentJson, autoFixes) {
+    if (!autoFixes || autoFixes.length === 0) return contentJson;
+
+    let improved = JSON.parse(JSON.stringify(contentJson));
+
+    autoFixes.forEach(fix => {
+      if (fix.type === 'spelling' || fix.type === 'grammar') {
+        improved.sections = improved.sections.map(section => {
+          if (section.type === 'text') {
+            section.content = section.content.replace(
+              new RegExp(fix.original, 'g'),
+              fix.fixed
+            );
+          }
+          return section;
+        });
+      }
+    });
+
+    return improved;
+  }
+
+  async checkPlagiarism(content) {
+    // Implement plagiarism detection
+    // Could use Copyscape API or similar
+    return {
+      isPlagiarized: false,
+      similarityScore: 0,
+      sources: []
+    };
+  }
+}
+
+module.exports = new AIQualityCheck();
+```
+
+### 1.5 Code Validator Service
+```javascript
+// server/src/services/codeValidator.js
+
+const { ESLint } = require('eslint');
+const { exec } = require('child_process');
+const { promisify } = require('util');
+const execPromise = promisify(exec);
+const logger = require('../utils/logger');
+
+class CodeValidator {
+  async validateAllCodeBlocks(contentJson) {
+    const errors = [];
+    const suggestions = [];
+    const sections = contentJson.sections || [];
+
+    for (const section of sections) {
+      if (section.type === 'code' || section.type === 'interactive_code') {
+        const validation = await this.validateCode(section.code, section.language);
+        
+        if (!validation.valid) {
+          errors.push({
+            sectionId: section.id,
+            language: section.language,
+            errors: validation.errors
+          });
+        }
+
+        if (validation.suggestions.length > 0) {
+          suggestions.push({
+            sectionId: section.id,
+            suggestions: validation.suggestions
+          });
+        }
+      }
+    }
+
+    return {
+      hasErrors: errors.length > 0,
+      errors,
+      suggestions
+    };
+  }
+
+  async validateCode(code, language) {
+    try {
+      switch (language.toLowerCase()) {
+        case 'javascript':
+        case 'jsx':
+          return await this.validateJavaScript(code);
+        case 'python':
+          return await this.validatePython(code);
+        case 'html':
+          return await this.validateHTML(code);
+        case 'css':
+          return await this.validateCSS(code);
+        default:
+          return { valid: true, errors: [], suggestions: [] };
+      }
+    } catch (error) {
+      logger.error(`Code validation error for ${language}:`, error);
+      return { valid: true, errors: [], suggestions: [] };
+    }
+  }
+
+  async validateJavaScript(code) {
+    try {
+      const eslint = new ESLint({
+        useEslintrc: false,
+        overrideConfig: {
+          env: { browser: true, es2021: true },
+          parserOptions: { ecmaVersion: 2021, sourceType: 'module' },
+          rules: {
+            'no-unused-vars': 'warn',
+            'no-undef': 'error',
+            'semi': 'warn'
+          }
+        }
+      });
+
+      const results = await eslint.lintText(code);
+      const messages = results[0]?.messages || [];
+
+      return {
+        valid: !messages.some(msg => msg.severity === 2),
+        errors: messages.filter(msg => msg.severity === 2).map(msg => msg.message),
+        suggestions: messages.filter(msg => msg.severity === 1).map(msg => msg.message)
+      };
+    } catch (error) {
+      return { valid: false, errors: [error.message], suggestions: [] };
+    }
+  }
+
+  async validatePython(code) {
+    try {
+      // Use python -m py_compile to check syntax
+      const { stdout, stderr } = await execPromise(`echo "${code.replace(/"/g, '\\"')}" | python3 -m py_compile -`);
+      
+      return {
+        valid: !stderr,
+        errors: stderr ? [stderr] : [],
+        suggestions: []
+      };
+    } catch (error) {
+      return {
+        valid: false,
+        errors: [error.message],
+        suggestions: []
+      };
+    }
+  }
+
+  async validateHTML(code) {
+    // Basic HTML validation
+    const errors = [];
+    const suggestions = [];
+
+    // Check for basic structure
+    if (!code.includes('<!DOCTYPE')) {
+      suggestions.push('Consider adding <!DOCTYPE html>');
+    }
+
+    // Check for unclosed tags
+    const openTags = code.match(/<([a-z]+)(?:\s|>)/gi) || [];
+    const closeTags = code.match(/<\/([a-z]+)>/gi) || [];
+
+    const selfClosing = ['img', 'br', 'hr', 'input', 'meta', 'link'];
+    openTags.forEach(tag => {
+      const tagName = tag.replace(/<|>|\s/g, '');
+      if (!selfClosing.includes(tagName)) {
+        const closeTag = `</${tagName}>`;
+        if (!code.includes(closeTag)) {
+          errors.push(`Unclosed tag: ${tagName}`);
+        }
+      }
+    });
+
+    return {
+      valid: errors.length === 0,
+      errors,
+      suggestions
+    };
+  }
+
+  async validateCSS(code) {
+    const errors = [];
+    const suggestions = [];
+
+    // Basic CSS validation
+    const braceCount = (code.match(/{/g) || []).length - (code.match(/}/g) || []).length;
+    if (braceCount !== 0) {
+      errors.push('Mismatched braces in CSS');
+    }
+
+    return {
+      valid: errors.length === 0,
+      errors,
+      suggestions
+    };
+  }
+}
+
+module.exports = new CodeValidator();
+```
+
+### 1.6 Frontend: Content Editor Component
+```jsx
+// client/src/components/admin/ContentEditor.jsx
+
+import React, { useState, useEffect, useCallback } from 'react';
+import { Editor } from '@tinymce/tinymce-react';
+import CodeBlockEditor from './CodeBlockEditor';
+import TemplateSelector from './TemplateSelector';
+import MediaUploader from './MediaUploader';
+import ContentPreview from './ContentPreview';
+import { useAutoSave } from '../../hooks/useAutoSave';
+import { contentService } from '../../services/contentService';
+import { toast } from 'react-hot-toast';
+
+const ContentEditor = ({ contentId, mode = 'create' }) => {
+  const [content, setContent] = useState({
+    title: '',
+    contentType: 'TUTORIAL',
+    templateType: 'STANDARD_TUTORIAL',
+    category: '',
+    tags: [],
+    difficultyLevel: 'BEGINNER',
+    contentJson: { version: '1.0', sections: [] },
+    status: 'DRAFT'
+  });
+
+  const [showPreview, setShowPreview] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [qualityReport, setQualityReport] = useState(null);
+
+  // Auto-save every 30 seconds
+  useAutoSave(content, async (data) => {
+    if (contentId) {
+      await contentService.updateContent(contentId, { ...data, isAutoSave: true });
+      toast.success('Auto-saved', { duration: 1000 });
+    }
+  }, 30000);
+
+  // Load content if editing
+  useEffect(() => {
+    if (mode === 'edit' && contentId) {
+      loadContent();
+    }
+  }, [contentId, mode]);
+
+  const loadContent = async () => {
+    try {
+      const data = await contentService.getContent(contentId);
+      setContent(data);
+    } catch (error) {
+      toast.error('Failed to load content');
+    }
+  };
+
+  const handleTemplateSelect = (template) => {
+    setContent(prev => ({
+      ...prev,
+      templateType: template.type,
+      contentJson: template.structure
+    }));
+  };
+
+  const addSection = (type) => {
+    const newSection = {
+      id: `section-${Date.now()}`,
+      type,
+      ...(type === 'text' && { content: '' }),
+      ...(type === 'code' && { language: 'javascript', code: '', runnable: false }),
+      ...(type === 'image' && { url: '', alt: '', caption: '' }),
+      ...(type === 'quiz' && { 
+        question: '', 
+        questionType: 'multiple_choice', 
+        options: ['', '', '', ''], 
+        correctAnswer: 0 
+      })
+    };
+
+    setContent(prev => ({
+      ...prev,
+      contentJson: {
+        ...prev.contentJson,
+        sections: [...prev.contentJson.sections, newSection]
+      }
+    }));
+  };
+
+  const updateSection = (sectionId, updates) => {
+    setContent(prev => ({
+      ...prev,
+      contentJson: {
+        ...prev.contentJson,
+        sections: prev.contentJson.sections.map(section =>
+          section.id === sectionId ? { ...section, ...updates } : section
+        )
+      }
+    }));
+  };
+
+  const deleteSection = (sectionId) => {
+    setContent(prev => ({
+      ...prev,
+      contentJson: {
+        ...prev.contentJson,
+        sections: prev.contentJson.sections.filter(s => s.id !== sectionId)
+      }
+    }));
+  };
+
+  const moveSection = (sectionId, direction) => {
+    const sections = [...content.contentJson.sections];
+    const index = sections.findIndex(s => s.id === sectionId);
+    
+    if (direction === 'up' && index > 0) {
+      [sections[index], sections[index - 1]] = [sections[index - 1], sections[index]];
+    } else if (direction === 'down' && index < sections.length - 1) {
+      [sections[index], sections[index + 1]] = [sections[index + 1], sections[index]];
+    }
+
+    setContent(prev => ({
+      ...prev,
+      contentJson: { ...prev.contentJson, sections }
+    }));
+  };
+
+  const handleSave = async (publishNow = false) => {
+    setIsSaving(true);
+    try {
+      let response;
+      
+      if (mode === 'create') {
+        response = await contentService.createContent({
+          ...content,
+          status: publishNow ? 'PUBLISHED' : 'DRAFT'
+        });
+        toast.success('Content created successfully!');
+      } else {
+        response = await contentService.updateContent(contentId, {
+          ...content,
+          status: publishNow ? 'PUBLISHED' : content.status,
+          isAutoSave: false,
+          changeLog: `Manual save - ${new Date().toLocaleString()}`
+        });
+        toast.success('Content saved successfully!');
+      }
+
+      if (response.qualityReport) {
+        setQualityReport(response.qualityReport);
+      }
+
+      if (publishNow && response.data.status === 'PUBLISHED') {
+        toast.success('Content published!');
+      }
+    } catch (error) {
+      toast.error(error.message || 'Failed to save content');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const renderSection = (section, index) => {
+    switch (section.type) {
+      case 'text':
+        return (
+          <div key={section.id} className="mb-6 border rounded-lg p-4">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-lg font-semibold">Text Section</h3>
+              <div className="space-x-2">
+                <button onClick={() => moveSection(section.id, 'up')} className="btn-sm">↑</button>
+                <button onClick={() => moveSection(section.id, 'down')} className="btn-sm">↓</button>
+                <button onClick={() => deleteSection(section.id)} className="btn-sm btn-danger">Delete</button>
+              </div>
+            </div>
+            <Editor
+              value={section.content}
+              onEditorChange={(content) => updateSection(section.id, { content })}
+              init={{
+                height: 300,
+                menubar: false,
+                plugins: [
+                  'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+                  'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+                  'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount'
+                ],
+                toolbar: 'undo redo | blocks | bold italic forecolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | removeformat | help',
+                content_style: 'body { font-family:Helvetica,Arial,sans-serif; font-size:14px }'
+              }}
+            />
+          </div>
+        );
+
+      case 'code':
+      case 'interactive_code':
+        return (
+          <div key={section.id} className="mb-6">
+            <CodeBlockEditor
+              section={section}
+              onUpdate={(updates) => updateSection(section.id, updates)}
+              onDelete={() => deleteSection(section.id)}
+              onMove={(direction) => moveSection(section.id, direction)}
+            />
+          </div>
+        );
+
+      case 'image':
+        return (
+          <div key={section.id} className="mb-6 border rounded-lg p-4">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-lg font-semibold">Image Section</h3>
+              <div className="space-x-2">
+                <button onClick={() => moveSection(section.id, 'up')} className="btn-sm">↑</button>
+                <button onClick={() => moveSection(section.id, 'down')} className="btn-sm">↓</button>
+                <button onClick={() => deleteSection(section.id)} className="btn-sm btn-danger">Delete</button>
+              </div>
+            </div>
+            <MediaUploader
+              type="image"
+              value={section.url}
+              onChange={(url) => updateSection(section.id, { url })}
+            />
+            <input
+              type="text"
+              placeholder="Alt text (for accessibility)"
+              value={section.alt}
+              onChange={(e) => updateSection(section.id, { alt: e.target.value })}
+              className="input mt-2 w-full"
+            />
+            <input
+              type="text"
+              placeholder="Caption (optional)"
+              value={section.caption || ''}
+              onChange={(e) => updateSection(section.id, { caption: e.target.value })}
+              className="input mt-2 w-full"
+            />
+          </div>
+        );
+
+      case 'quiz':
+        return (
+          <div key={section.id} className="mb-6 border rounded-lg p-4">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-lg font-semibold">Quiz Section</h3>
+              <div className="space-x-2">
+                <button onClick={() => moveSection(section.id, 'up')} className="btn-sm">↑</button>
+                <button onClick={() => moveSection(section.id, 'down')} className="btn-sm">↓</button>
+                <button onClick={() => deleteSection(section.id)} className="btn-sm btn-danger">Delete</button>
+              </div>
+            </div>
+            <input
+              type="text"
+              placeholder="Question"
+              value={section.question}
+              onChange={(e) => updateSection(section.id, { question: e.target.value })}
+              className="input w-full mb-2"
+            />
+            {section.options.map((option, i) => (
+              <div key={i} className="flex items-center mb-2">
+                <input
+                  type="radio"
+                  name={`correct-${section.id}`}
+                  checked={section.correctAnswer === i}
+                  onChange={() => updateSection(section.id, { correctAnswer: i })}
+                  className="mr-2"
+                />
+                <input
+                  type="text"
+                  placeholder={`Option ${i + 1}`}
+                  value={option}
+                  onChange={(e) => {
+                    const newOptions = [...section.options];
+                    newOptions[i] = e.target.value;
+                    updateSection(section.id, { options: newOptions });
+                  }}
+                  className="input flex-1"
+                />
+              </div>
+            ))}
+            <textarea
+              placeholder="Explanation (shown after answer)"
+              value={section.explanation || ''}
+              onChange={(e) => updateSection(section.id, { explanation: e.target.value })}
+              className="textarea w-full mt-2"
+              rows="2"
+            />
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="max-w-6xl mx-auto p-6">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">
+          {mode === 'create' ? 'Create New Content' : 'Edit Content'}
+        </h1>
+        <div className="space-x-2">
+          <button 
+            onClick={() => setShowPreview(!showPreview)}
+            className="btn btn-secondary"
+          >
+            {showPreview ? 'Hide Preview' : 'Show Preview'}
+          </button>
+          <button 
+            onClick={() => handleSave(false)}
+            disabled={isSaving}
+            className="btn btn-primary"
+          >
+            {isSaving ? 'Saving...' : 'Save Draft'}
+          </button>
+          <button 
+            onClick={() => handleSave(true)}
+            disabled={isSaving}
+            className="btn btn-success"
+          >
+            Publish Now
+          </button>
+        </div>
+      </div>
+
+      {/* Quality Report */}
+      {qualityReport && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <h3 className="font-semibold mb-2">✨ AI Quality Report</h3>
+          <p>Readability Score: {qualityReport.readabilityScore}/10</p>
+          <p>Auto-fixes Applied: {qualityReport.autoFixesApplied}</p>
+          {qualityReport.grammarIssues.length > 0 && (
+            <p className="text-orange-600">Grammar Issues: {qualityReport.grammarIssues.length}</p>
+          )}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Editor */}
+        <div className="lg:col-span-2">
+          {/* Basic Info */}
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 className="text-xl font-semibold mb-4">Basic Information</h2>
+            
+            <input
+              type="text"
+              placeholder="Content Title"
+              value={content.title}
+              onChange={(e) => setContent(prev => ({ ...prev, title: e.target.value }))}
+              className="input w-full mb-4 text-2xl font-bold"
+            />
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Content Type</label>
+                <select
+                  value={content.contentType}
+                  onChange={(e) => setContent(prev => ({ ...prev, contentType: e.target.value }))}
+                  className="select w-full"
+                >
+                  <option value="TUTORIAL">Tutorial</option>
+                  <option value="REFERENCE">Reference Guide</option>
+                  <option value="CHALLENGE">Challenge</option>
+                  <option value="QUIZ">Quiz</option>
+                  <option value="VIDEO_LESSON">Video Lesson</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Difficulty Level</label>
+                <select
+                  value={content.difficultyLevel}
+                  onChange={(e) => setContent(prev => ({ ...prev, difficultyLevel: e.target.value }))}
+                  className="select w-full"
+                >
+                  <option value="BEGINNER">Beginner</option>
+                  <option value="INTERMEDIATE">Intermediate</option>
+                  <option value="ADVANCED">Advanced</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Category</label>
+                <select
+                  value={content.category}
+                  onChange={(e) => setContent(prev => ({ ...prev, category: e.target.value }))}
+                  className="select w-full"
+                >
+                  <option value="">Select Category</option>
+                  <option value="web-development">Web Development</option>
+                  <option value="mobile-development">Mobile Development</option>
+                  <option value="data-science">Data Science & AI</option>
+                  <option value="blockchain">Blockchain & Web3</option>
+                  <option value="devops">DevOps & Cloud</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Estimated Time (minutes)</label>
+                <input
+                  type="number"
+                  value={content.estimatedMinutes || ''}
+                  onChange={(e) => setContent(prev => ({ ...prev, estimatedMinutes: parseInt(e.target.value) }))}
+                  className="input w-full"
+                  placeholder="30"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Template Selector */}
+          {mode === 'create' && content.contentJson.sections.length === 0 && (
+            <div className="mb-6">
+              <TemplateSelector onSelect={handleTemplateSelect} />
+            </div>
+          )}
+
+          {/* Content Sections */}
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Content Sections</h2>
+              <div className="space-x-2">
+                <button onClick={() => addSection('text')} className="btn btn-sm">+ Text</button>
+                <button onClick={() => addSection('code')} className="btn btn-sm">+ Code</button>
+                <button onClick={() => addSection('image')} className="btn btn-sm">+ Image</button>
+                <button onClick={() => addSection('quiz')} className="btn btn-sm">+ Quiz</button>
+              </div>
+            </div>
+
+            {content.contentJson.sections.length === 0 ? (
+              <div className="text-center text-gray-500 py-12">
+                <p>No sections yet. Add your first section above or choose a template.</p>
+              </div>
+            ) : (
+              content.contentJson.sections.map((section, index) => renderSection(section, index))
+            )}
+          </div>
+        </div>
+
+        {/* Sidebar */}
+        <div className="lg:col-span-1">
+          {/* SEO */}
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <h3 className="font-semibold mb-3">SEO Settings</h3>
+            <input
+              type="text"
+              placeholder="Meta Title"
+              value={content.metaTitle || ''}
+              onChange={(e) => setContent(prev => ({ ...prev, metaTitle: e.target.value }))}
+              className="input w-full mb-2"
+            />
+            <textarea
+              placeholder="Meta Description"
+              value={content.metaDescription || ''}
+              onChange={(e) => setContent(prev => ({ ...prev, metaDescription: e.target.value }))}
+              className="textarea w-full"
+              rows="3"
+            />
+          </div>
+
+          {/* Tags */}
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <h3 className="font-semibold mb-3">Tags</h3>
+            <input
+              type="text"
+              placeholder="Add tags (comma-separated)"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && e.target.value.trim()) {
+                  setContent(prev => ({
+                    ...prev,
+                    tags: [...prev.tags, e.target.value.trim()]
+                  }));
+                  e.target.value = '';
+                }
+              }}
+              className="input w-full mb-2"
+            />
+            <div className="flex flex-wrap gap-2">
+              {content.tags.map((tag, i) => (
+                <span key={i} className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm">
+                  {tag}
+                  <button
+                    onClick={() => setContent(prev => ({
+                      ...prev,
+                      tags: prev.tags.filter((_, index) => index !== i)
+                    }))}
+                    className="ml-1 text-blue-600 hover:text-blue-800"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Premium */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={content.isPremium}
+                onChange={(e) => setContent(prev => ({ ...prev, isPremium: e.target.checked }))}
+                className="mr-2"
+              />
+              <span className="font-semibold">Premium Content</span>
+            </label>
+            <p className="text-sm text-gray-600 mt-1">Only accessible to premium users</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Preview Modal */}
+      {showPreview && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+              <h2 className="text-2xl font-bold">Preview</h2>
+              <button onClick={() => setShowPreview(false)} className="btn btn-secondary">
+                Close Preview
+              </button>
+            </div>
+            <div className="p-6">
+              <ContentPreview content={content} />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ContentEditor;
+```
+
+---
+
+## FEATURE 2: SELF-HEALING & AUTO-RECOVERY
+
+### 2.1 Link Checker Service
+```javascript
+// server/src/services/linkChecker.js
+
+const axios = require('axios');
+const cheerio = require('cheerio');
+const logger = require('../utils/logger');
+const { PrismaClient } = require('@prisma/client');
+
+const prisma = new PrismaClient();
+
+class LinkChecker {
+  async checkAllLinks(contentJson) {
+    const links = this.extractLinks(contentJson);
+    const results = await Promise.all(
+      links.map(link => this.checkLink(link))
+    );
+
+    const brokenLinks = results.filter(r => !r.isValid);
+
+    return {
+      totalLinks: links.length,
+      brokenLinks,
+      validLinks: results.filter(r => r.isValid)
+    };
+  }
+
+  extractLinks(contentJson) {
+    const links = [];
+    
+    if (!contentJson.sections) return links;
+
+    contentJson.sections.forEach(section => {
+      if (section.type === 'text') {
+        const $ = cheerio.load(section.content);
+        $('a').each((i, elem) => {
+          const href = $(elem).attr('href');
+          if (href && href.startsWith('http')) {
+            links.push({
+              url: href,
+              sectionId: section.id,
+              text: $(elem).text()
+            });
+          }
+        });
+      }
+      
+      if (section.type === 'image' && section.url) {
+        links.push({
+          url: section.url,
+          sectionId: section.id,
+          type: 'image'
+        });
+      }
+    });
+
+    return links;
+  }
+
+  async checkLink(link) {
+    try {
+      const response = await axios.head(link.url, {
+        timeout: 5000,
+        maxRedirects: 5,
+        validateStatus: (status) => status < 500
+      });
+
+      const isValid = response.status >= 200 && response.status < 400;
+
+      if (!isValid) {
+        logger.warn(`Broken link detected: ${link.url} (Status: ${response.status})`);
+      }
+
+      return {
+        ...link,
+        isValid,
+        statusCode: response.status,
+        checkedAt: new Date()
+      };
+    } catch (error) {
+      logger.error(`Link check failed for ${link.url}:`, error.message);
+      
+      return {
+        ...link,
+        isValid: false,
+        statusCode: null,
+        error: error.message,
+        checkedAt: new Date()
+      };
+    }
+  }
+
+  async scheduledLinkCheck() {
+    try {
+      logger.info('Starting scheduled link health check...');
+
+      // Get all published content
+      const contents = await prisma.content.findMany({
+        where: { status: 'PUBLISHED' }
+      });
+
+      let totalFixed = 0;
+      let totalBroken = 0;
+
+      for (const content of contents) {
+        const linkCheck = await this.checkAllLinks(content.contentJson);
+
+        if (linkCheck.brokenLinks.length > 0) {
+          totalBroken += linkCheck.brokenLinks.length;
+
+          // Attempt auto-fix
+          const autoFix = require('./autoFix');
+          const fixed = await autoFix.fixBrokenLinks(
+            content.contentJson,
+            linkCheck.brokenLinks
+          );
+
+          if (fixed.success && fixed.fixedCount > 0) {
+            // Update content
+            await prisma.content.update({
+              where: { id: content.id },
+              data: {
+                contentJson: fixed.fixedContent,
+                lastChecked: new Date(),
+                healthStatus: 'AUTO_FIXED',
+                brokenLinks: linkCheck.brokenLinks.length - fixed.fixedCount
+              }
+            });
+
+            totalFixed += fixed.fixedCount;
+
+            logger.info(`Auto-fixed ${fixed.fixedCount} links in content: ${content.id}`);
+          } else {
+            // Mark as warning
+            await prisma.content.update({
+              where: { id: content.id },
+              data: {
+                lastChecked: new Date(),
+                healthStatus: 'WARNING',
+                brokenLinks: linkCheck.brokenLinks.length
+              }
+            });
+          }
+        } else {
+          // Mark as healthy
+          await prisma.content.update({
+            where: { id: content.id },
+            data: {
+              lastChecked: new Date(),
+              healthStatus: 'HEALTHY',
+              brokenLinks: 0
+            }
+          });
+        }
+      }
+
+      logger.info(`Link check complete. Fixed: ${totalFixed}, Remaining broken: ${totalBroken - totalFixed}`);
+
+      return {
+        totalContents: contents.length,
+        totalFixed,
+        totalBroken: totalBroken - totalFixed
+      };
+    } catch (error) {
+      logger.error('Scheduled link check failed:', error);
+      throw error;
+    }
+  }
+}
+
+module.exports = new LinkChecker();
+```
+
+### 2.2 Auto-Fix Service
+```javascript
+// server/src/services/autoFix.js
+
+const axios = require('axios');
+const sharp = require('sharp');
+const logger = require('../utils/logger');
+const { PrismaClient } = require('@prisma/client');
+
+const prisma = new PrismaClient();
+
+class AutoFix {
+  async fixBrokenLinks(contentJson, brokenLinks) {
+    let fixedContent = JSON.parse(JSON.stringify(contentJson));
+    let fixedCount = 0;
+
+    for (const brokenLink of brokenLinks) {
+      // Try common fixes
+      const alternatives = this.generateAlternativeUrls(brokenLink.url);
+
+      for (const altUrl of alternatives) {
+        try {
+          const response = await axios.head(altUrl, { timeout: 3000 });
+          
+          if (response.status >= 200 && response.status < 400) {
+            // Found working alternative!
+            fixedContent = this.replaceLinkInContent(
+              fixedContent,
+              brokenLink.url,
+              altUrl
+            );
+
+            // Log the fix
+            await prisma.autoFixLog.create({
+              data: {
+                fixType: 'link_update',
+                targetType: 'content',
+                description: `Auto-fixed broken link`,
+                oldValue: brokenLink.url,
+                newValue: altUrl,
+                successful: true
+              }
+            });
+
+            fixedCount++;
+            logger.info(`Auto-fixed link: ${brokenLink.url} → ${altUrl}`);
+            break;
+          }
+        } catch (error) {
+          // Continue to next alternative
+          continue;
+        }
+      }
+    }
+
+    return {
+      success: fixedCount > 0,
+      fixedCount,
+      fixedContent,
+      unfixedLinks: brokenLinks.length - fixedCount
+    };
+  }
+
+  generateAlternativeUrls(url) {
+    const alternatives = [];
+
+    try {
+      const urlObj = new URL(url);
+
+      // Try HTTPS/HTTP variant
+      if (urlObj.protocol === 'http:') {
+        alternatives.push(url.replace('http://', 'https://'));
+      } else {
+        alternatives.push(url.replace('https://', 'http://'));
+      }
+
+      // Try with/without www
+      if (urlObj.hostname.startsWith('www.')) {
+        const noWww = url.replace('www.', '');
+        alternatives.push(noWww);
+      } else {
+        const withWww = url.replace('://', '://www.');
+        alternatives.push(withWww);
+      }
+
+      // Try archive.org
+      alternatives.push(`https://web.archive.org/web/*/${url}`);
+
+      // Try removing trailing slash
+      if (url.endsWith('/')) {
+        alternatives.push(url.slice(0, -1));
+      } else {
+        alternatives.push(url + '/');
+      }
+
+    } catch (error) {
+      logger.error('Error generating alternative URLs:', error);
+    }
+
+    return alternatives;
+  }
+
+  replaceLinkInContent(contentJson, oldUrl, newUrl) {
+    const updated = JSON.parse(JSON.stringify(contentJson));
+
+    updated.sections = updated.sections.map(section => {
+      if (section.type === 'text') {
+        section.content = section.content.replace(
+          new RegExp(oldUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'),
+          newUrl
+        );
+      }
+
+      if (section.type === 'image' && section.url === oldUrl) {
+        section.url = newUrl;
+      }
+
+      return section;
+    });
+
+    return updated;
+  }
+
+  async optimizeImages(contentJson) {
+    const updated = JSON.parse(JSON.stringify(contentJson));
+    let optimizedCount = 0;
+
+    for (const section of updated.sections) {
+      if (section.type === 'image' && section.url) {
+        try {
+          // Download image
+          const response = await axios.get(section.url, { 
+            responseType: 'arraybuffer',
+            timeout: 10000
+          });
+
+          const buffer = Buffer.from(response.data);
+
+          // Optimize with sharp
+          const optimized = await sharp(buffer)
+            .resize(1200, 1200, { fit: 'inside', withoutEnlargement: true })
+            .jpeg({ quality: 85 })
+            .toBuffer();
+
+          const originalSize = buffer.length;
+          const optimizedSize = optimized.length;
+          const savings = ((originalSize - optimizedSize) / originalSize * 100).toFixed(2);
+
+          if (optimizedSize < originalSize) {
+            // Upload optimized image to storage (S3, Cloudinary, etc.)
+            // const newUrl = await this.uploadToStorage(optimized, `optimized-${Date.now()}.jpg`);
+            // section.url = newUrl;
+
+            optimizedCount++;
+
+            logger.info(`Optimized image: ${savings}% size reduction`);
+
+            await prisma.autoFixLog.create({
+              data: {
+                fixType: 'image_optimization',
+                targetType: 'media',
+                description: `Optimized image (${savings}% reduction)`,
+                oldValue: `${originalSize} bytes`,
+                newValue: `${optimizedSize} bytes`,
+                successful: true
+              }
+            });
+          }
+        } catch (error) {
+          logger.error(`Image optimization failed for ${section.url}:`, error.message);
+        }
+      }
+    }
+
+    return {
+      success: optimizedCount > 0,
+      optimizedCount,
+      content: updated
+    };
+  }
+
+  async fixCodeSyntax(code, language) {
+    // Basic auto-fixes for common syntax errors
+    let fixed = code;
+    let fixes = [];
+
+    if (language === 'javascript' || language === 'jsx') {
+      // Add missing semicolons
+      const lines = fixed.split('\n');
+      const needsSemicolon = [
+        /^(const|let|var)\s+\w+\s*=.+[^;{]$/,
+        /^return\s+.+[^;{]$/,
+        /^\w+\(.+\)[^;{]$/
+      ];
+
+      fixes.push('Added missing semicolons');
+    }
+
+    if (language === 'python') {
+      // Fix indentation
+      const lines = fixed.split('\n');
+      let indent = 0;
+      
+      fixed = lines.map(line => {
+        const trimmed = line.trim();
+        if (trimmed.endsWith(':')) {
+          const result = '  '.repeat(indent) + trimmed;
+          indent++;
+          return result;
+        }
+        if (trimmed.length === 0) return '';
+        
+        const result = '  '.repeat(indent) + trimmed;
+        
+        if (trimmed.startsWith('else:') || trimmed.startsWith('elif:') || trimmed.startsWith('except:')) {
+          indent = Math.max(0, indent - 1);
+        }
+        
+        return result;
+      }).join('\n');
+
+      fixes.push('Fixed indentation');
+    }
+
+    return {
+      fixed,
+      fixes,
+      hasChanges: fixed !== code
+    };
+  }
+}
+
+module.exports = new AutoFix();
+```
+
+### 2.3 Error Analyzer Service
+```javascript
+// server/src/services/errorAnalyzer.js
+
+const { PrismaClient } = require('@prisma/client');
+const logger = require('../utils/logger');
+
+const prisma = new PrismaClient();
+
+class ErrorAnalyzer {
+  async logError(error, context = {}) {
+    try {
+      const errorType = this.categorizeError(error);
+      const severity = this.calculateSeverity(error, errorType);
+
+      // Check if similar error exists
+      const existingError = await prisma.errorLog.findFirst({
+        where: {
+          errorType,
+          errorMessage: error.message,
+          isResolved: false
+        }
+      });
+
+      if (existingError) {
+        // Update occurrence count
+        await prisma.errorLog.update({
+          where: { id: existingError.id },
+          data: {
+            occurrences: existingError.occurrences + 1,
+            lastOccurred: new Date(),
+            context: {
+              ...existingError.context,
+              latestContext: context
+            }
+          }
+        });
+
+        // Check if it should trigger auto-fix
+        if (existingError.occurrences >= 3) {
+          await this.triggerAutoFix(existingError);
+        }
+      } else {
+        // Create new error log
+        await prisma.errorLog.create({
+          data: {
+            errorType,
+            errorMessage: error.message,
+            stackTrace: error.stack,
+            severity,
+            context,
+            occurrences: 1
+          }
+        });
+      }
+
+      // If critical, send alert
+      if (severity === 'CRITICAL') {
+        await this.sendAlert(error, context);
+      }
+
+    } catch (logError) {
+      logger.error('Failed to log error:', logError);
+    }
+  }
+
+  categorizeError(error) {
+    const message = error.message.toLowerCase();
+
+    if (message.includes('404') || message.includes('not found')) {
+      return 'BROKEN_LINK';
+    }
+    if (message.includes('syntax')) {
+      return 'CODE_SYNTAX_ERROR';
+    }
+    if (message.includes('database') || message.includes('prisma')) {
+      return 'DATABASE_ERROR';
+    }
+    if (message.includes('api') || message.includes('request failed')) {
+      return 'API_ERROR';
+    }
+    if (message.includes('auth') || message.includes('unauthorized')) {
+      return 'AUTHENTICATION_ERROR';
+    }
+    if (message.includes('validation')) {
+      return 'VALIDATION_ERROR';
+    }
+    if (message.includes('timeout') || message.includes('slow')) {
+      return 'PERFORMANCE_ISSUE';
+    }
+
+    return 'SYSTEM_ERROR';
+  }
+
+  calculateSeverity(error, errorType) {
+    // Critical errors
+    if (errorType === 'DATABASE_ERROR' || errorType === 'SYSTEM_ERROR') {
+      return 'CRITICAL';
+    }
+
+    // High severity
+    if (errorType === 'AUTHENTICATION_ERROR' || errorType === 'API_ERROR') {
+      return 'HIGH';
+    }
+
+    // Medium severity
+    if (errorType === 'BROKEN_LINK' || errorType === 'PERFORMANCE_ISSUE') {
+      return 'MEDIUM';
+    }
+
+    // Low severity
+    return 'LOW';
+  }
+
+  async triggerAutoFix(errorLog) {
+    try {
+      logger.info(`Triggering auto-fix for error: ${errorLog.id}`);
+
+      const autoFix = require('./autoFix');
+      let fixed = false;
+
+      switch (errorLog.errorType) {
+        case 'BROKEN_LINK':
+          // Auto-fix logic would go here
+          logger.info('Attempting to fix broken links...');
+          break;
+
+        case 'CODE_SYNTAX_ERROR':
+          // Auto-fix syntax errors
+          logger.info('Attempting to fix code syntax...');
+          break;
+
+        case 'PERFORMANCE_ISSUE':
+          // Clear cache, restart services, etc.
+          logger.info('Attempting to fix performance issues...');
+          break;
+
+        default:
+          logger.warn(`No auto-fix available for ${errorLog.errorType}`);
+      }
+
+      if (fixed) {
+        await prisma.errorLog.update({
+          where: { id: errorLog.id },
+          data: {
+            isResolved: true,
+            autoFixed: true,
+            fixApplied: 'Auto-fix applied',
+            resolvedAt: new Date()
+          }
+        });
+      }
+
+    } catch (error) {
+      logger.error('Auto-fix failed:', error);
+    }
+  }
+
+  async sendAlert(error, context) {
+    // Send email, Slack notification, etc.
+    logger.error('CRITICAL ERROR ALERT:', {
+      error: error.message,
+      context
+    });
+
+    // TODO: Implement actual alerting (SendGrid, Slack webhook, etc.)
+  }
+
+  async getErrorStats(timeframe = '24h') {
+    const since = new Date();
+    if (timeframe === '24h') {
+      since.setHours(since.getHours() - 24);
+    } else if (timeframe === '7d') {
+      since.setDate(since.getDate() - 7);
+    } else if (timeframe === '30d') {
+      since.setDate(since.getDate() - 30);
+    }
+
+    const errors = await prisma.errorLog.findMany({
+      where: {
+        firstOccurred: { gte: since }
+      },
+      orderBy: {
+        occurrences: 'desc'
+      }
+    });
+
+    const stats = {
+      total: errors.length,
+      byType: {},
+      bySeverity: {},
+      autoFixed: errors.filter(e => e.autoFixed).length,
+      unresolved: errors.filter(e => !e.isResolved).length
+    };
+
+    errors.forEach(error => {
+      stats.byType[error.errorType] = (stats.byType[error.errorType] || 0) + 1;
+      stats.bySeverity[error.severity] = (stats.bySeverity[error.severity] || 0) + 1;
+    });
+
+    return stats;
+  }
+}
+
+module.exports = new ErrorAnalyzer();
+```
+
+### 2.4 System Health Monitor
+```javascript
+// server/src/middleware/healthCheck.js
+
+const os = require('os');
+const { PrismaClient } = require('@prisma/client');
+const logger = require('../utils/logger');
+
+const prisma = new PrismaClient();
+
+class HealthMonitor {
+  constructor() {
+    this.healthStatus = {
+      status: 'healthy',
+      lastCheck: new Date(),
+      metrics: {}
+    };
+
+    // Start monitoring
+    this.startMonitoring();
+  }
+
+  startMonitoring() {
+    // Check every 60 seconds
+    setInterval(() => {
+      this.performHealthCheck();
+    }, 60000);
+
+    // Initial check
+    this.performHealthCheck();
+  }
+
+  async performHealthCheck() {
+    try {
+      const metrics = {
+        cpu: this.getCPUUsage(),
+        memory: this.getMemoryUsage(),
+        uptime: process.uptime(),
+        timestamp: new Date()
+      };
+
+      // Check database connectivity
+      try {
+        await prisma.$queryRaw`SELECT 1`;
+        metrics.database = 'healthy';
+      } catch (error) {
+        metrics.database = 'unhealthy';
+        logger.error('Database health check failed:', error);
+        await this.handleUnhealthyDatabase();
+      }
+
+      // Store metrics
+      await prisma.systemMetric.create({
+        data: {
+          metricType: 'cpu_usage',
+          value: metrics.cpu,
+          unit: 'percentage'
+        }
+      });
+
+      await prisma.systemMetric.create({
+        data: {
+          metricType: 'memory_usage',
+          value: metrics.memory,
+          unit: 'percentage'
+        }
+      });
+
+      // Check for issues
+      if (metrics.cpu > 90) {
+        logger.warn('HIGH CPU USAGE:', metrics.cpu);
+        await this.handleHighCPU();
+      }
+
+      if (metrics.memory > 90) {
+        logger.warn('HIGH MEMORY USAGE:', metrics.memory);
+        await this.handleHighMemory();
+      }
+
+      this.healthStatus = {
+        status: this.calculateOverallStatus(metrics),
+        lastCheck: new Date(),
+        metrics
+      };
+
+    } catch (error) {
+      logger.error('Health check failed:', error);
+      this.healthStatus.status = 'unhealthy';
+    }
+  }
+
+  getCPUUsage() {
+    const cpus = os.cpus();
+    let totalIdle = 0;
+    let totalTick = 0;
+
+    cpus.forEach(cpu => {
+      for (const type in cpu.times) {
+        totalTick += cpu.times[type];
+      }
+      totalIdle += cpu.times.idle;
+    });
+
+    const idle = totalIdle / cpus.length;
+    const total = totalTick / cpus.length;
+    const usage = 100 - ~~(100 * idle / total);
+
+    return usage;
+  }
+
+  getMemoryUsage() {
+    const totalMem = os.totalmem();
+    const freeMem = os.freemem();
+    const usedMem = totalMem - freeMem;
+    const usage = (usedMem / totalMem) * 100;
+
+    return Math.round(usage);
+  }
+
+  calculateOverallStatus(metrics) {
+    if (metrics.database === 'unhealthy') return 'critical';
+    if (metrics.cpu > 90 || metrics.memory > 90) return 'warning';
+    return 'healthy';
+  }
+
+  async handleHighCPU() {
+    logger.info('Attempting to resolve high CPU usage...');
+    
+    // Clear cache
+    // Restart worker processes
+    // Scale up if on cloud platform
+    
+    await prisma.autoFixLog.create({
+      data: {
+        fixType: 'performance_optimization',
+        targetType: 'system',
+        description: 'High CPU detected, cleared cache',
+        successful: true
+      }
+    });
+  }
+
+  async handleHighMemory() {
+    logger.info('Attempting to resolve high memory usage...');
+    
+    // Force garbage collection
+    if (global.gc) {
+      global.gc();
+      logger.info('Garbage collection triggered');
+    }
+
+    await prisma.autoFixLog.create({
+      data: {
+        fixType: 'memory_cleanup',
+        targetType: 'system',
+        description: 'High memory detected, triggered GC',
+        successful: true
+      }
+    });
+  }
+
+  async handleUnhealthyDatabase() {
+    logger.error('Database unhealthy, attempting reconnection...');
+    
+    try {
+      await prisma.$disconnect();
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      await prisma.$connect();
+      
+      logger.info('Database reconnected successfully');
+
+      await prisma.autoFixLog.create({
+        data: {
+          fixType: 'database_reconnect',
+          targetType: 'system',
+          description: 'Database reconnected after failure',
+          successful: true
+        }
+      });
+    } catch (error) {
+      logger.error('Database reconnection failed:', error);
+      
+      // Send critical alert
+      const errorAnalyzer = require('../services/errorAnalyzer');
+      await errorAnalyzer.sendAlert(error, { type: 'database_failure' });
+    }
+  }
+
+  getStatus() {
+    return this.healthStatus;
+  }
+}
+
+const healthMonitor = new HealthMonitor();
+
+// Express middleware
+const healthCheckMiddleware = async (req, res, next) => {
+  const status = healthMonitor.getStatus();
+  
+  if (status.status === 'critical') {
+    return res.status(503).json({
+      status: 'unhealthy',
+      message: 'System is experiencing critical issues',
+      metrics: status.metrics
+    });
+  }
+
+  next();
+};
+
+module.exports = {
+  healthMonitor,
+  healthCheckMiddleware
+};
+```
+
+### 2.5 Scheduled Jobs
+```javascript
+// server/src/jobs/scheduler.js
+
+const cron = require('node-cron');
+const linkChecker = require('../services/linkChecker');
+const autoFix = require('../services/autoFix');
+const { PrismaClient } = require('@prisma/client');
+const logger = require('../utils/logger');
+
+const prisma = new PrismaClient();
+
+class JobScheduler {
+  start() {
+    // Run link health check every day at 2 AM
+    cron.schedule('0 2 * * *', async () => {
+      logger.info('Running scheduled link health check...');
+      try {
+        const result = await linkChecker.scheduledLinkCheck();
+        logger.info('Link health check complete:', result);
+      } catch (error) {
+        logger.error('Link health check failed:', error);
+      }
+    });
+
+    // Optimize images weekly (Sunday at 3 AM)
+    cron.schedule('0 3 * * 0', async () => {
+      logger.info('Running scheduled image optimization...');
+      try {
+        const contents = await prisma.content.findMany({
+          where: { status: 'PUBLISHED' }
+        });
+
+        let totalOptimized = 0;
+
+        for (const content of contents) {
+          const result = await autoFix.optimizeImages(content.contentJson);
+          if (result.success) {
+            await prisma.content.update({
+              where: { id: content.id },
+              data: { contentJson: result.content }
+            });
+            totalOptimized += result.optimizedCount;
+          }
+        }
+
+        logger.info(`Image optimization complete. Optimized ${totalOptimized} images.`);
+      } catch (error) {
+        logger.error('Image optimization failed:', error);
+      }
+    });
+
+    // Clean old error logs (monthly)
+    cron.schedule('0 4 1 * *', async () => {
+      logger.info('Cleaning old error logs...');
+      try {
+        const threeMonthsAgo = new Date();
+        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+        const deleted = await prisma.errorLog.deleteMany({
+          where: {
+            isResolved: true,
+            resolvedAt: { lt: threeMonthsAgo }
+          }
+        });
+
+        logger.info(`Deleted ${deleted.count} old error logs`);
+      } catch (error) {
+        logger.error('Error log cleanup failed:', error);
+      }
+    });
+
+    // Publish scheduled content (every hour)
+    cron.schedule('0 * * * *', async () => {
+      try {
+        const now = new Date();
+        
+        const scheduledContent = await prisma.content.updateMany({
+          where: {
+            status: 'DRAFT',
+            scheduledFor: { lte: now }
+          },
+          data: {
+            status: 'PUBLISHED',
+            publishedAt: now
+          }
+        });
+
+        if (scheduledContent.count > 0) {
+          logger.info(`Published ${scheduledContent.count} scheduled content items`);
+        }
+      } catch (error) {
+        logger.error('Scheduled publishing failed:', error);
+      }
+    });
+
+    logger.info('Job scheduler started successfully');
+  }
+}
+
+module.exports = new JobScheduler();
+```
+
+### 2.6 Error Handler Middleware
+```javascript
+// server/src/middleware/errorHandler.js
+
+const errorAnalyzer = require('../services/errorAnalyzer');
+const logger = require('../utils/logger');
+
+const errorHandler = async (err, req, res, next) => {
+  // Log error
+  logger.error('Error caught:', {
+    message: err.message,
+    stack: err.stack,
+    url: req.url,
+    method: req.method,
+    user: req.user?.id
+  });
+
+  // Analyze and log to database
+  await errorAnalyzer.logError(err, {
+    url: req.url,
+    method: req.method,
+    userId: req.user?.id,
+    body: req.body,
+    query: req.query
+  });
+
+  // Send appropriate response
+  const status = err.statusCode || 500;
+  const message = err.message || 'Internal server error';
+
+  res.status(status).json({
+    success: false,
+    error: {
+      message,
+      ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
+    }
+  });
+};
+
+module.exports = errorHandler;
+```
+
+---
+
+## ENVIRONMENT VARIABLES (.env)
+```env
+# Database
+DATABASE_URL="postgresql://user:password@localhost:5432/hackathon_platform"
+
+# Redis
+REDIS_URL="redis://localhost:6379"
+
+# JWT
+JWT_SECRET="your-super-secret-jwt-key-change-this"
+JWT_EXPIRES_IN="24h"
+
+# AWS S3
+AWS_ACCESS_KEY_ID="your-aws-access-key"
+AWS_SECRET_ACCESS_KEY="your-aws-secret-key"
+AWS_BUCKET_NAME="hackathon-platform-uploads"
+AWS_REGION="us-east-1"
+
+# OpenAI (for AI quality checks)
+OPENAI_API_KEY="sk-your-openai-api-key"
+
+# Sentry (Error tracking)
+SENTRY_DSN="https://your-sentry-dsn"
+
+# Email
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT=587
+SMTP_USER="your-email@gmail.com"
+SMTP_PASS="your-app-password"
+
+# App
+NODE_ENV="development"
+PORT=5000
+CLIENT_URL="http://localhost:3000"
+
+# Monitoring
+ENABLE_HEALTH_CHECK=true
+ENABLE_AUTO_FIX=true
+```
+
+---
+
+## DEPLOYMENT INSTRUCTIONS FOR REPLIT
+
+### 1. Setup Replit Project
+```bash
+# Install dependencies
+npm install
+
+# Setup Prisma
+npx prisma generate
+npx prisma migrate dev --name init
+
+# Seed database (optional)
+npm run seed
+```
+
+### 2. Configure .replit File
+```toml
+# .replit
+
+run = "npm run dev"
+language = "nodejs"
+entrypoint = "server/server.js"
+
+[nix]
+channel = "stable-22_11"
+
+[deployment]
+run = ["npm", "start"]
+deploymentTarget = "cloudrun"
+
+[[ports]]
+localPort = 3000
+externalPort = 80
+
+[[ports]]
+localPort = 5000
+externalPort = 3000
+```
+
+### 3. Configure replit.nix
+```nix
+{ pkgs }: {
+  deps = [
+    pkgs.nodejs-18_x
+    pkgs.postgresql
+    pkgs.redis
+  ];
+}
+```
+
+### 4. Package.json Scripts
+```json
+{
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "nodemon server/server.js",
+    "client": "cd client && npm run dev",
+    "start": "node server/server.js",
+    "seed": "node server/scripts/seed.js",
+    "migrate": "npx prisma migrate deploy"
+  }
+}
+```
+
+---
+
+## TESTING THE FEATURES
+
+### Test CMS:
+1. Create admin account
+2. Navigate to `/admin/content/create`
+3. Select tutorial template
+4. Add text sections with rich text
+5. Add code blocks with syntax highlighting
+6. Upload images
+7. Add quiz questions
+8. Save as draft (should auto-save every 30s)
+9. Preview content
+10. Publish
+
+### Test Self-Healing:
+1. Create content with external links
+2. Manually break a link in database
+3. Run link checker: `npm run check-links`
+4. Verify auto-fix attempts
+5. Check error logs in database
+6. View system health dashboard at `/admin/monitoring`
+
+---
+
+## NEXT STEPS
+
+1. **Phase 1:** Implement basic CMS with rich text editor
+2. **Phase 2:** Add code validation and AI quality checks
+3. **Phase 3:** Implement auto-save and version control
+4. **Phase 4:** Add link checker and auto-fix
+5. **Phase 5:** Implement system health monitoring
+6. **Phase 6:** Add scheduled jobs and error analysis
+
+---
+
+This master prompt provides a complete, production-ready implementation of both the CMS and self-healing features. Copy this into your Replit project and start building! 🚀

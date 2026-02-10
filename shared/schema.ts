@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, primaryKey, real } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -416,7 +416,143 @@ export const judgingScoresRelations = relations(judgingScores, ({ one }) => ({
   }),
 }));
 
+// --- CMS (Content Management System) ---
+
+export const cmsContent = pgTable("cms_content", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  slug: text("slug").notNull().unique(),
+  contentType: text("content_type").notNull().default("tutorial"),
+  templateType: text("template_type").notNull().default("standard_tutorial"),
+  contentJson: jsonb("content_json").$type<{
+    version: string;
+    sections: Array<{
+      id: string;
+      type: string;
+      content?: string;
+      language?: string;
+      code?: string;
+      runnable?: boolean;
+      expectedOutput?: string;
+      explanation?: string;
+      url?: string;
+      alt?: string;
+      caption?: string;
+      question?: string;
+      questionType?: string;
+      options?: string[];
+      correctAnswer?: number;
+      starterCode?: string;
+      solution?: string;
+      instructions?: string;
+      testCases?: Array<{ description: string; test: string }>;
+    }>;
+  }>().notNull(),
+  category: text("category").notNull().default("web-development"),
+  subCategory: text("sub_category"),
+  tags: text("tags").array(),
+  difficultyLevel: text("difficulty_level").notNull().default("beginner"),
+  estimatedMinutes: integer("estimated_minutes"),
+  status: text("status").notNull().default("draft"),
+  metaTitle: text("meta_title"),
+  metaDescription: text("meta_description"),
+  publishedAt: timestamp("published_at"),
+  scheduledFor: timestamp("scheduled_for"),
+  isPremium: boolean("is_premium").default(false),
+  authorId: text("author_id").notNull(),
+  lastChecked: timestamp("last_checked"),
+  healthStatus: text("health_status").default("healthy"),
+  brokenLinks: integer("broken_links").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const contentVersions = pgTable("content_versions", {
+  id: serial("id").primaryKey(),
+  contentId: integer("content_id").notNull().references(() => cmsContent.id, { onDelete: "cascade" }),
+  versionNumber: integer("version_number").notNull(),
+  contentJson: jsonb("content_json").notNull(),
+  changeLog: text("change_log"),
+  createdById: text("created_by_id").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const contentAnalytics = pgTable("content_analytics", {
+  id: serial("id").primaryKey(),
+  contentId: integer("content_id").notNull().references(() => cmsContent.id, { onDelete: "cascade" }),
+  views: integer("views").default(0),
+  completions: integer("completions").default(0),
+  averageRating: real("average_rating"),
+  averageTimeSpent: integer("average_time_spent"),
+  dropOffRate: real("drop_off_rate"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// --- SELF-HEALING & MONITORING ---
+
+export const errorLogs = pgTable("error_logs", {
+  id: serial("id").primaryKey(),
+  errorType: text("error_type").notNull(),
+  errorMessage: text("error_message").notNull(),
+  stackTrace: text("stack_trace"),
+  severity: text("severity").notNull().default("low"),
+  context: jsonb("context"),
+  isResolved: boolean("is_resolved").default(false),
+  autoFixed: boolean("auto_fixed").default(false),
+  fixApplied: text("fix_applied"),
+  occurrences: integer("occurrences").default(1),
+  firstOccurred: timestamp("first_occurred").defaultNow(),
+  lastOccurred: timestamp("last_occurred").defaultNow(),
+  resolvedAt: timestamp("resolved_at"),
+});
+
+export const systemMetrics = pgTable("system_metrics", {
+  id: serial("id").primaryKey(),
+  metricType: text("metric_type").notNull(),
+  value: real("value").notNull(),
+  unit: text("unit").notNull(),
+  timestamp: timestamp("timestamp").defaultNow(),
+});
+
+export const autoFixLogs = pgTable("auto_fix_logs", {
+  id: serial("id").primaryKey(),
+  fixType: text("fix_type").notNull(),
+  targetType: text("target_type").notNull(),
+  targetId: text("target_id"),
+  description: text("description").notNull(),
+  oldValue: text("old_value"),
+  newValue: text("new_value"),
+  successful: boolean("successful").notNull(),
+  executedAt: timestamp("executed_at").defaultNow(),
+});
+
+// --- CMS RELATIONS ---
+
+export const cmsContentRelations = relations(cmsContent, ({ many }) => ({
+  versions: many(contentVersions),
+}));
+
+export const contentVersionsRelations = relations(contentVersions, ({ one }) => ({
+  content: one(cmsContent, {
+    fields: [contentVersions.contentId],
+    references: [cmsContent.id],
+  }),
+}));
+
+export const contentAnalyticsRelations = relations(contentAnalytics, ({ one }) => ({
+  content: one(cmsContent, {
+    fields: [contentAnalytics.contentId],
+    references: [cmsContent.id],
+  }),
+}));
+
 // --- SCHEMAS ---
+export const insertCmsContentSchema = createInsertSchema(cmsContent).omit({ id: true, createdAt: true, updatedAt: true, lastChecked: true, brokenLinks: true, healthStatus: true, publishedAt: true });
+export const insertContentVersionSchema = createInsertSchema(contentVersions).omit({ id: true, createdAt: true });
+export const insertErrorLogSchema = createInsertSchema(errorLogs).omit({ id: true, firstOccurred: true, lastOccurred: true, resolvedAt: true, isResolved: true, autoFixed: true, fixApplied: true, occurrences: true });
+export const insertSystemMetricSchema = createInsertSchema(systemMetrics).omit({ id: true, timestamp: true });
+export const insertAutoFixLogSchema = createInsertSchema(autoFixLogs).omit({ id: true, executedAt: true });
+
 export const insertProblemSchema = createInsertSchema(problems).omit({ id: true });
 export const insertSubmissionSchema = createInsertSchema(submissions).omit({ id: true, createdAt: true });
 export const insertHackathonSchema = createInsertSchema(hackathons).omit({ id: true });
@@ -477,6 +613,18 @@ export type JudgingCriterion = typeof judgingCriteria.$inferSelect;
 export type InsertJudgingCriterion = z.infer<typeof insertJudgingCriterionSchema>;
 export type JudgingScore = typeof judgingScores.$inferSelect;
 export type InsertJudgingScore = z.infer<typeof insertJudgingScoreSchema>;
+
+export type CmsContent = typeof cmsContent.$inferSelect;
+export type InsertCmsContent = z.infer<typeof insertCmsContentSchema>;
+export type ContentVersion = typeof contentVersions.$inferSelect;
+export type InsertContentVersion = z.infer<typeof insertContentVersionSchema>;
+export type ContentAnalyticsRow = typeof contentAnalytics.$inferSelect;
+export type ErrorLog = typeof errorLogs.$inferSelect;
+export type InsertErrorLog = z.infer<typeof insertErrorLogSchema>;
+export type SystemMetric = typeof systemMetrics.$inferSelect;
+export type InsertSystemMetric = z.infer<typeof insertSystemMetricSchema>;
+export type AutoFixLog = typeof autoFixLogs.$inferSelect;
+export type InsertAutoFixLog = z.infer<typeof insertAutoFixLogSchema>;
 
 // --- API TYPES ---
 export type ProblemResponse = Problem & { isSolved?: boolean };

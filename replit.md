@@ -25,6 +25,8 @@ BlueCoderHub is a gamified ed-tech platform inspired by Codedex.io, combining fe
 10. **Monthly Challenges**: Competitive coding challenges with prizes (Club-only)
 11. **Organization System**: Create/manage organizations with role-based access (owner/admin/judge/member)
 12. **Hackathon Hosting**: Organizations can create/manage hackathons with registration, teams, submissions, judging
+13. **CMS**: Content Management System for creating tutorials with text, code, quiz, image, and interactive code sections
+14. **Self-Healing/Monitoring**: Error logging middleware, health checks (CPU, memory, DB), admin monitoring dashboard
 
 ## Project Structure
 ```
@@ -95,6 +97,28 @@ BlueCoderHub is a gamified ed-tech platform inspired by Codedex.io, combining fe
 - `POST /api/hackathons/:id/criteria` - Add judging criteria
 - `POST /api/hackathons/:id/scores` - Submit scores
 
+### CMS Content Endpoints
+- `GET /api/cms/content` - List all CMS content (with filters)
+- `GET /api/cms/published` - List published content
+- `GET /api/cms/content/:id` - Get content by ID
+- `GET /api/cms/content/slug/:slug` - Get content by slug
+- `POST /api/cms/content` - Create new content
+- `PATCH /api/cms/content/:id` - Update content (with auto-save support)
+- `POST /api/cms/content/:id/publish` - Publish content
+- `DELETE /api/cms/content/:id` - Delete content
+- `GET /api/cms/content/:id/versions` - Get version history
+- `POST /api/cms/content/:id/restore/:versionNumber` - Restore version
+- `GET /api/cms/content/:id/analytics` - Get content analytics
+- `POST /api/cms/content/:id/complete` - Mark content as completed
+
+### Health & Monitoring Endpoints
+- `GET /api/health` - System health check (CPU, memory, DB status)
+- `GET /api/monitoring/errors` - Get error logs
+- `GET /api/monitoring/error-stats` - Get error statistics
+- `POST /api/monitoring/errors/:id/resolve` - Resolve an error
+- `GET /api/monitoring/metrics/:type` - Get system metrics
+- `GET /api/monitoring/auto-fixes` - Get auto-fix logs
+
 ## Database Tables
 - `users` - User accounts (Replit Auth) with Stripe/membership fields
 - `sessions` - Session storage
@@ -117,6 +141,12 @@ BlueCoderHub is a gamified ed-tech platform inspired by Codedex.io, combining fe
 - `hackathon_submissions` - Project submissions
 - `judging_criteria` - Scoring criteria
 - `judging_scores` - Judge scores per submission
+- `cms_content` - CMS managed content (tutorials, guides, etc.)
+- `content_versions` - Version history for CMS content
+- `content_analytics` - Views and completions tracking
+- `error_logs` - Application error tracking
+- `system_metrics` - CPU, memory, and other system metrics
+- `auto_fix_logs` - Automated fix action logs
 
 ## Design Theme
 - **Colors**: Deep space blue backgrounds, neon purple/green/pink accents
@@ -125,6 +155,14 @@ BlueCoderHub is a gamified ed-tech platform inspired by Codedex.io, combining fe
 - **Dark mode by default** with gradient backgrounds
 
 ## Recent Changes (Feb 2026)
+- **CMS System**: Content Management System with section-based editor (text, code, quiz, image, interactive code)
+- **Content Editor**: Admin page for creating/editing educational content with auto-save, live preview, version history
+- **Content Viewer**: Public page for viewing published tutorials with interactive code playground and quizzes
+- **Self-Healing/Monitoring**: Error logging middleware, health checks, admin monitoring dashboard
+- **Admin CMS Tab**: Content management with publish/edit/delete actions
+- **Admin Monitoring Tab**: System health, CPU/memory usage, error logs with resolution tracking
+- 6 new database tables: cms_content, content_versions, content_analytics, error_logs, system_metrics, auto_fix_logs
+- 30+ new storage layer methods and 20+ new API endpoints
 - **Organization System**: Create/manage organizations with role-based access (owner/admin/judge/member)
 - **Hackathon Hosting**: Organizations can create and manage hackathons with registration, teams, submissions, judging
 - **Admin Panel**: Added Organizations and Hosted Hackathons management tabs

@@ -5,6 +5,7 @@ import {
   users, certificates, projects, monthlyChallenges, challengeSubmissions,
   organizations, organizationMembers, hackathonRegistrations, hackathonTeams,
   teamMembers, hackathonSubmissions, judgingCriteria, judgingScores,
+  cmsContent, contentVersions, contentAnalytics, errorLogs, systemMetrics, autoFixLogs,
   type Problem, type Submission, type UserProgress, type Hackathon, type Tutorial, type Lesson,
   type Discussion, type Answer, type Badge, type UserBadge, type User,
   type Certificate, type Project, type MonthlyChallenge, type ChallengeSubmission,
@@ -12,9 +13,11 @@ import {
   type Organization, type OrganizationMember, type HackathonRegistration,
   type HackathonTeam, type TeamMember, type HackathonSubmission,
   type JudgingCriterion, type JudgingScore,
-  type InsertOrganization, type InsertHackathonSubmission, type InsertJudgingScore
+  type InsertOrganization, type InsertHackathonSubmission, type InsertJudgingScore,
+  type CmsContent, type InsertCmsContent, type ContentVersion, type ContentAnalyticsRow,
+  type ErrorLog, type InsertErrorLog, type SystemMetric, type AutoFixLog
 } from "@shared/schema";
-import { eq, desc, sql, and, like, or, gte, lte, count } from "drizzle-orm";
+import { eq, desc, sql, and, like, or, gte, lte, count, asc } from "drizzle-orm";
 
 export interface IStorage {
   // Problems
@@ -117,6 +120,43 @@ export interface IStorage {
   getJudgingCriteria(hackathonId: number): Promise<JudgingCriterion[]>;
   submitJudgingScore(data: InsertJudgingScore): Promise<JudgingScore>;
   getSubmissionScores(submissionId: number): Promise<(JudgingScore & { criterionName: string })[]>;
+
+  // CMS Content
+  getAllCmsContent(filters?: { status?: string; contentType?: string; category?: string }): Promise<CmsContent[]>;
+  getCmsContentById(id: number): Promise<CmsContent | undefined>;
+  getCmsContentBySlug(slug: string): Promise<CmsContent | undefined>;
+  getPublishedContent(filters?: { category?: string; contentType?: string }): Promise<CmsContent[]>;
+  createCmsContent(data: InsertCmsContent): Promise<CmsContent>;
+  updateCmsContent(id: number, data: Partial<CmsContent>): Promise<CmsContent>;
+  deleteCmsContent(id: number): Promise<void>;
+  publishCmsContent(id: number): Promise<CmsContent>;
+
+  // Content Versions
+  createContentVersion(contentId: number, contentJson: any, createdById: string, changeLog?: string): Promise<ContentVersion>;
+  getContentVersions(contentId: number): Promise<ContentVersion[]>;
+  getContentVersion(contentId: number, versionNumber: number): Promise<ContentVersion | undefined>;
+  getNextVersionNumber(contentId: number): Promise<number>;
+
+  // Content Analytics
+  getContentAnalytics(contentId: number): Promise<ContentAnalyticsRow | undefined>;
+  incrementContentViews(contentId: number): Promise<void>;
+  incrementContentCompletions(contentId: number): Promise<void>;
+
+  // Error Logs
+  logError(data: InsertErrorLog): Promise<ErrorLog>;
+  getErrorLogs(filters?: { isResolved?: boolean; severity?: string; errorType?: string }): Promise<ErrorLog[]>;
+  resolveError(id: number, fixApplied?: string): Promise<void>;
+  getErrorStats(): Promise<{ total: number; unresolved: number; autoFixed: number; byType: Record<string, number>; bySeverity: Record<string, number> }>;
+  incrementErrorOccurrence(id: number): Promise<void>;
+  findSimilarError(errorType: string, errorMessage: string): Promise<ErrorLog | undefined>;
+
+  // System Metrics
+  recordMetric(data: { metricType: string; value: number; unit: string }): Promise<SystemMetric>;
+  getRecentMetrics(metricType: string, limit?: number): Promise<SystemMetric[]>;
+
+  // Auto Fix Logs
+  logAutoFix(data: { fixType: string; targetType: string; targetId?: string; description: string; oldValue?: string; newValue?: string; successful: boolean }): Promise<AutoFixLog>;
+  getAutoFixLogs(limit?: number): Promise<AutoFixLog[]>;
 
   // Seeding
   seedHackathons(hackathonsData: any[]): Promise<void>;
@@ -923,6 +963,202 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(judgingCriteria, eq(judgingScores.criterionId, judgingCriteria.id))
       .where(eq(judgingScores.submissionId, submissionId));
     return result as any;
+  }
+
+  // --- CMS CONTENT ---
+
+  async getAllCmsContent(filters?: { status?: string; contentType?: string; category?: string }): Promise<CmsContent[]> {
+    let query = db.select().from(cmsContent);
+    const conditions = [];
+    if (filters?.status) conditions.push(eq(cmsContent.status, filters.status));
+    if (filters?.contentType) conditions.push(eq(cmsContent.contentType, filters.contentType));
+    if (filters?.category) conditions.push(eq(cmsContent.category, filters.category));
+    if (conditions.length > 0) query = query.where(and(...conditions)) as any;
+    return await query.orderBy(desc(cmsContent.updatedAt));
+  }
+
+  async getCmsContentById(id: number): Promise<CmsContent | undefined> {
+    const [content] = await db.select().from(cmsContent).where(eq(cmsContent.id, id));
+    return content;
+  }
+
+  async getCmsContentBySlug(slug: string): Promise<CmsContent | undefined> {
+    const [content] = await db.select().from(cmsContent).where(eq(cmsContent.slug, slug));
+    return content;
+  }
+
+  async getPublishedContent(filters?: { category?: string; contentType?: string }): Promise<CmsContent[]> {
+    const conditions = [eq(cmsContent.status, "published")];
+    if (filters?.category) conditions.push(eq(cmsContent.category, filters.category));
+    if (filters?.contentType) conditions.push(eq(cmsContent.contentType, filters.contentType));
+    return await db.select().from(cmsContent).where(and(...conditions)).orderBy(desc(cmsContent.publishedAt));
+  }
+
+  async createCmsContent(data: InsertCmsContent): Promise<CmsContent> {
+    const [content] = await db.insert(cmsContent).values(data).returning();
+    return content;
+  }
+
+  async updateCmsContent(id: number, data: Partial<CmsContent>): Promise<CmsContent> {
+    const [content] = await db.update(cmsContent)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(cmsContent.id, id))
+      .returning();
+    return content;
+  }
+
+  async deleteCmsContent(id: number): Promise<void> {
+    await db.delete(cmsContent).where(eq(cmsContent.id, id));
+  }
+
+  async publishCmsContent(id: number): Promise<CmsContent> {
+    const [content] = await db.update(cmsContent)
+      .set({ status: "published", publishedAt: new Date(), updatedAt: new Date() })
+      .where(eq(cmsContent.id, id))
+      .returning();
+    return content;
+  }
+
+  // --- CONTENT VERSIONS ---
+
+  async createContentVersion(contentId: number, contentJson: any, createdById: string, changeLog?: string): Promise<ContentVersion> {
+    const versionNumber = await this.getNextVersionNumber(contentId);
+    const [version] = await db.insert(contentVersions)
+      .values({ contentId, versionNumber, contentJson, createdById, changeLog })
+      .returning();
+    return version;
+  }
+
+  async getContentVersions(contentId: number): Promise<ContentVersion[]> {
+    return await db.select().from(contentVersions)
+      .where(eq(contentVersions.contentId, contentId))
+      .orderBy(desc(contentVersions.versionNumber));
+  }
+
+  async getContentVersion(contentId: number, versionNumber: number): Promise<ContentVersion | undefined> {
+    const [version] = await db.select().from(contentVersions)
+      .where(and(eq(contentVersions.contentId, contentId), eq(contentVersions.versionNumber, versionNumber)));
+    return version;
+  }
+
+  async getNextVersionNumber(contentId: number): Promise<number> {
+    const [result] = await db.select({ maxVersion: sql<number>`COALESCE(MAX(${contentVersions.versionNumber}), 0)` })
+      .from(contentVersions)
+      .where(eq(contentVersions.contentId, contentId));
+    return (result?.maxVersion ?? 0) + 1;
+  }
+
+  // --- CONTENT ANALYTICS ---
+
+  async getContentAnalytics(contentId: number): Promise<ContentAnalyticsRow | undefined> {
+    const [analytics] = await db.select().from(contentAnalytics)
+      .where(eq(contentAnalytics.contentId, contentId));
+    return analytics;
+  }
+
+  async incrementContentViews(contentId: number): Promise<void> {
+    const existing = await this.getContentAnalytics(contentId);
+    if (existing) {
+      await db.update(contentAnalytics)
+        .set({ views: sql`${contentAnalytics.views} + 1`, updatedAt: new Date() })
+        .where(eq(contentAnalytics.contentId, contentId));
+    } else {
+      await db.insert(contentAnalytics).values({ contentId, views: 1 });
+    }
+  }
+
+  async incrementContentCompletions(contentId: number): Promise<void> {
+    const existing = await this.getContentAnalytics(contentId);
+    if (existing) {
+      await db.update(contentAnalytics)
+        .set({ completions: sql`${contentAnalytics.completions} + 1`, updatedAt: new Date() })
+        .where(eq(contentAnalytics.contentId, contentId));
+    } else {
+      await db.insert(contentAnalytics).values({ contentId, completions: 1 });
+    }
+  }
+
+  // --- ERROR LOGS ---
+
+  async logError(data: InsertErrorLog): Promise<ErrorLog> {
+    const similar = await this.findSimilarError(data.errorType, data.errorMessage);
+    if (similar) {
+      await this.incrementErrorOccurrence(similar.id);
+      return similar;
+    }
+    const [errorLog] = await db.insert(errorLogs).values(data).returning();
+    return errorLog;
+  }
+
+  async getErrorLogs(filters?: { isResolved?: boolean; severity?: string; errorType?: string }): Promise<ErrorLog[]> {
+    const conditions = [];
+    if (filters?.isResolved !== undefined) conditions.push(eq(errorLogs.isResolved, filters.isResolved));
+    if (filters?.severity) conditions.push(eq(errorLogs.severity, filters.severity));
+    if (filters?.errorType) conditions.push(eq(errorLogs.errorType, filters.errorType));
+    let query = db.select().from(errorLogs);
+    if (conditions.length > 0) query = query.where(and(...conditions)) as any;
+    return await query.orderBy(desc(errorLogs.lastOccurred));
+  }
+
+  async resolveError(id: number, fixApplied?: string): Promise<void> {
+    await db.update(errorLogs)
+      .set({ isResolved: true, resolvedAt: new Date(), fixApplied: fixApplied || null })
+      .where(eq(errorLogs.id, id));
+  }
+
+  async getErrorStats(): Promise<{ total: number; unresolved: number; autoFixed: number; byType: Record<string, number>; bySeverity: Record<string, number> }> {
+    const allErrors = await db.select().from(errorLogs);
+    const stats = {
+      total: allErrors.length,
+      unresolved: allErrors.filter(e => !e.isResolved).length,
+      autoFixed: allErrors.filter(e => e.autoFixed).length,
+      byType: {} as Record<string, number>,
+      bySeverity: {} as Record<string, number>,
+    };
+    allErrors.forEach(e => {
+      stats.byType[e.errorType] = (stats.byType[e.errorType] || 0) + 1;
+      stats.bySeverity[e.severity] = (stats.bySeverity[e.severity] || 0) + 1;
+    });
+    return stats;
+  }
+
+  async incrementErrorOccurrence(id: number): Promise<void> {
+    await db.update(errorLogs)
+      .set({ occurrences: sql`${errorLogs.occurrences} + 1`, lastOccurred: new Date() })
+      .where(eq(errorLogs.id, id));
+  }
+
+  async findSimilarError(errorType: string, errorMessage: string): Promise<ErrorLog | undefined> {
+    const [error] = await db.select().from(errorLogs)
+      .where(and(eq(errorLogs.errorType, errorType), eq(errorLogs.errorMessage, errorMessage), eq(errorLogs.isResolved, false)));
+    return error;
+  }
+
+  // --- SYSTEM METRICS ---
+
+  async recordMetric(data: { metricType: string; value: number; unit: string }): Promise<SystemMetric> {
+    const [metric] = await db.insert(systemMetrics).values(data).returning();
+    return metric;
+  }
+
+  async getRecentMetrics(metricType: string, limit = 50): Promise<SystemMetric[]> {
+    return await db.select().from(systemMetrics)
+      .where(eq(systemMetrics.metricType, metricType))
+      .orderBy(desc(systemMetrics.timestamp))
+      .limit(limit);
+  }
+
+  // --- AUTO FIX LOGS ---
+
+  async logAutoFix(data: { fixType: string; targetType: string; targetId?: string; description: string; oldValue?: string; newValue?: string; successful: boolean }): Promise<AutoFixLog> {
+    const [log] = await db.insert(autoFixLogs).values(data).returning();
+    return log;
+  }
+
+  async getAutoFixLogs(limit = 50): Promise<AutoFixLog[]> {
+    return await db.select().from(autoFixLogs)
+      .orderBy(desc(autoFixLogs.executedAt))
+      .limit(limit);
   }
 }
 

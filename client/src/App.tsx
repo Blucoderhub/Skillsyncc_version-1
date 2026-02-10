@@ -29,6 +29,8 @@ import Portfolio from "@/pages/Portfolio";
 import Challenges from "@/pages/Challenges";
 import Organizations from "@/pages/Organizations";
 import HackathonDetail from "@/pages/HackathonDetail";
+import ContentEditor from "@/pages/ContentEditor";
+import ContentViewer from "@/pages/ContentViewer";
 import NotFound from "@/pages/not-found";
 
 // Protected Route Wrapper
@@ -148,6 +150,18 @@ function Router() {
 
       <Route path="/organizations">
         <ProtectedRoute component={Organizations} />
+      </Route>
+
+      <Route path="/cms/new">
+        <ProtectedRoute component={ContentEditor} />
+      </Route>
+
+      <Route path="/cms/edit/:id">
+        <ProtectedRoute component={ContentEditor} />
+      </Route>
+
+      <Route path="/learn/:slug">
+        <ProtectedRoute component={ContentViewer} />
       </Route>
 
       <Route component={NotFound} />
