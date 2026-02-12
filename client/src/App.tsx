@@ -34,6 +34,7 @@ import ContentEditor from "@/pages/ContentEditor";
 import ContentViewer from "@/pages/ContentViewer";
 import Privacy from "@/pages/Privacy";
 import Terms from "@/pages/Terms";
+import Presentation from "@/pages/Presentation";
 import NotFound from "@/pages/not-found";
 
 // Protected Route Wrapper
@@ -136,6 +137,7 @@ function Router() {
       <Route path="/pricing" component={Pricing} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/terms" component={Terms} />
+      <Route path="/presentation" component={Presentation} />
 
       <Route path="/club/success">
         <ProtectedRoute component={ClubSuccess} />
