@@ -6,12 +6,13 @@ const { Pool } = pg;
 
 let dbInstance: any;
 
-// Vercel Postgres support
+// Vercel Postgres support (migrated to Neon)
 if (process.env.VERCEL && process.env.POSTGRES_URL) {
-  // Use Vercel Postgres in production
-  const { sql } = require("@vercel/postgres");
-  const { drizzle: vercelDrizzle } = require("drizzle-orm/vercel-postgres");
-  dbInstance = vercelDrizzle(sql, { schema });
+  // Use Neon Postgres in production
+  const { neon } = require("@neondatabase/serverless");
+  const { drizzle: neonDrizzle } = require("drizzle-orm/neon-http");
+  const sql = neon(process.env.POSTGRES_URL);
+  dbInstance = neonDrizzle(sql, { schema });
 } else if (process.env.DATABASE_URL) {
   // Use local PostgreSQL for development
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });

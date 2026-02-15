@@ -84,33 +84,14 @@ export async function setupApp() {
   return app;
 }
 
-// Vercel serverless function export
-if (process.env.VERCEL) {
-  setupApp().then(app => {
-    module.exports = app;
-  });
-} else {
-  // Traditional server setup for development/non-Vercel environments
+// Traditional server setup for development/non-Vercel environments
+// Vercel deployment is handled by api/index.js and the build process
+if (!process.env.VERCEL) {
   (async () => {
-    await setupApp();
-
-    // Setup Vite in development
-    if (process.env.NODE_ENV !== "production") {
-      const { setupVite } = await import("./vite");
-      await setupVite(httpServer, app);
-    }
-
-    // Start server on specified port
-    const port = parseInt(process.env.PORT || "5000", 10);
-    httpServer.listen(
-      {
-        port,
-        host: "0.0.0.0",
-        reusePort: true,
-      },
-      () => {
-        log(`serving on port ${port}`);
-      },
-    );
+    const app = await setupApp();
+    const port = process.env.PORT || 3001;
+    app.listen(port, () => {
+      console.log(`Server running on port ${port}`);
+    });
   })();
 }
