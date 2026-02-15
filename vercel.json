@@ -6,18 +6,19 @@
       "maxDuration": 30
     }
   },
-  "routes": [
+  "cleanUrls": true,
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "api/index.js"
+      "source": "/api/(.*)",
+      "destination": "/api/index.js"
     },
     {
-      "src": "/assets/(.*)",
-      "dest": "/client/dist/public/assets/$1"
+      "source": "/assets/(.*)",
+      "destination": "/dist/public/assets/$1"
     },
     {
-      "src": "/(.*)",
-      "dest": "/client/dist/public/$1"
+      "source": "/(.*)",
+      "destination": "/api/index.js"
     }
   ],
   "env": {

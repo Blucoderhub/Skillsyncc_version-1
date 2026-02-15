@@ -1,8 +1,10 @@
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
+import { setupApp } from '../server/index.js';
 
-// Vercel Edge Function compatible entry point
-import('../dist/index.cjs').catch((err) => {
-  console.error('Failed to load server:', err);
-  process.exit(1);
-});
+let app;
+
+export default async (req, res) => {
+  if (!app) {
+    app = await setupApp();
+  }
+  return app(req, res);
+};
