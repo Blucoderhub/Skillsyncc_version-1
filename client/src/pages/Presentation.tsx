@@ -11,7 +11,7 @@ import {
   GraduationCap, Briefcase, Calendar, Gift, Eye,
   Database, Server, Activity, Settings, Download
 } from "lucide-react";
-import logoImage from "@assets/full_margin_white_base_1770730873164.png";
+
 
 interface Slide {
   id: string;
@@ -71,7 +71,6 @@ export default function Presentation() {
       title: "Skillsyncc",
       content: (
         <div className="flex flex-col items-center justify-center h-full gap-6 text-center">
-          <img src={logoImage} alt="Skillsyncc" className="w-28 h-28 rounded-2xl shadow-lg" />
           <div>
             <h1 className="text-4xl font-bold tracking-tight mb-3">Skillsyncc</h1>
             <p className="text-lg text-muted-foreground">Powered by Bluecoderhub</p>
@@ -492,7 +491,6 @@ export default function Presentation() {
       title: "Summary",
       content: (
         <div className="flex flex-col items-center justify-center h-full gap-6 text-center">
-          <img src={logoImage} alt="Skillsyncc" className="w-20 h-20 rounded-2xl shadow-lg" />
           <h2 className="text-3xl font-bold">Complete Feature Summary</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-2xl">
             <StatBox value="8" label="Core Modules" icon={Layers} />
@@ -547,8 +545,7 @@ export default function Presentation() {
     <div className="min-h-screen bg-background flex flex-col" data-testid="presentation-page">
       <div className="flex items-center justify-between p-3 border-b gap-2">
         <div className="flex items-center gap-3">
-          <img src={logoImage} alt="Skillsyncc" className="w-8 h-8 rounded-md" />
-          <span className="font-semibold text-sm hidden sm:inline">Skillsyncc Feature Presentation</span>
+          <span className="font-semibold text-sm">Skillsyncc Feature Presentation</span>
         </div>
         <SlideCounter current={currentSlide + 1} total={slides.length} />
         <div className="flex items-center gap-1">

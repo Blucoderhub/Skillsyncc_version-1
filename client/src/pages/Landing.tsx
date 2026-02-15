@@ -7,7 +7,7 @@ import {
   MessageSquare, Calendar, Shield, Zap, 
   Globe, LayoutGrid, Rocket, Target, Users, Crown, Quote, Star
 } from "lucide-react";
-import logoImg from "@assets/full_margin_white_base_1770730873164.png";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -75,7 +75,6 @@ export default function Landing() {
             animate={{ opacity: 1, x: 0 }}
             className="flex items-center gap-3"
           >
-            <img src={logoImg} alt="Skillsyncc" className="h-10 w-10 rounded-xl object-contain" />
             <div className="flex flex-col">
               <span className="text-xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
                 Skill<span className="text-primary">syncc</span>

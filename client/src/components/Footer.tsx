@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { Mail } from "lucide-react";
 import { SiGithub, SiLinkedin, SiX, SiInstagram, SiDiscord, SiYoutube } from "react-icons/si";
-import logoImg from "@assets/full_margin_white_base_1770730873164.png";
+
 
 export function Footer() {
   const socialLinks = [
@@ -19,7 +19,6 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="space-y-4">
             <Link href="/" className="flex items-center gap-3 group" data-testid="footer-link-home">
-              <img src={logoImg} alt="Skillsyncc" className="h-10 w-10 rounded-lg object-contain" />
               <div className="flex flex-col">
                 <span className="font-display text-lg text-primary tracking-tighter">
                   Skill<span className="text-secondary">syncc</span>
