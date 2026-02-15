@@ -91,8 +91,12 @@ export function registerAdminRoutes(app: Express): void {
         category: z.string().min(1),
         difficulty: z.string().default("Beginner"),
         imageUrl: z.string().optional(),
+        videoUrl: z.string().optional(),
+        videoThumbnail: z.string().optional(),
+        videoDuration: z.string().optional(),
         order: z.number().default(0),
         xpReward: z.number().default(500),
+        content: z.string().optional(),
       });
       
       const data = tutorialSchema.parse(req.body);
@@ -236,6 +240,76 @@ export function registerAdminRoutes(app: Express): void {
     } catch (error) {
       console.error("Error deleting hackathon:", error);
       res.status(500).json({ error: "Failed to delete hackathon" });
+    }
+  });
+
+  // --- TUTORIAL-HACKATHON RELATIONSHIPS ---
+
+  // Get tutorials linked to a hackathon
+  app.get("/api/admin/hackathons/:hackathonId/tutorials", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const hackathonId = parseInt(req.params.hackathonId as string);
+      const hackathonTutorials = await storage.getHackathonTutorials(hackathonId);
+      res.json(hackathonTutorials);
+    } catch (error) {
+      console.error("Error fetching hackathon tutorials:", error);
+      res.status(500).json({ error: "Failed to fetch hackathon tutorials" });
+    }
+  });
+
+  // Link a tutorial to a hackathon
+  app.post("/api/admin/hackathons/:hackathonId/tutorials", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const hackathonId = parseInt(req.params.hackathonId as string);
+      const tutorialSchema = z.object({
+        tutorialId: z.number(),
+        relevance: z.enum(["required", "recommended", "optional"]).default("recommended"),
+        order: z.number().optional().default(0),
+      });
+      
+      const data = tutorialSchema.parse(req.body);
+      const hackathonTutorial = await storage.createHackathonTutorial({
+        hackathonId,
+        tutorialId: data.tutorialId,
+        relevance: data.relevance,
+        order: data.order,
+      });
+      res.status(201).json(hackathonTutorial);
+    } catch (error) {
+      console.error("Error linking tutorial to hackathon:", error);
+      res.status(500).json({ error: "Failed to link tutorial to hackathon" });
+    }
+  });
+
+  // Update tutorial-hackathon relationship
+  app.put("/api/admin/hackathons/:hackathonId/tutorials/:tutorialId", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const hackathonId = parseInt(req.params.hackathonId as string);
+      const tutorialId = parseInt(req.params.tutorialId as string);
+      const updateSchema = z.object({
+        relevance: z.enum(["required", "recommended", "optional"]).optional(),
+        order: z.number().optional(),
+      });
+      
+      const data = updateSchema.parse(req.body);
+      const hackathonTutorial = await storage.updateHackathonTutorial(hackathonId, tutorialId, data);
+      res.json(hackathonTutorial);
+    } catch (error) {
+      console.error("Error updating hackathon tutorial relationship:", error);
+      res.status(500).json({ error: "Failed to update hackathon tutorial relationship" });
+    }
+  });
+
+  // Remove tutorial from hackathon
+  app.delete("/api/admin/hackathons/:hackathonId/tutorials/:tutorialId", isAuthenticated, isAdmin, async (req, res) => {
+    try {
+      const hackathonId = parseInt(req.params.hackathonId as string);
+      const tutorialId = parseInt(req.params.tutorialId as string);
+      await storage.deleteHackathonTutorial(hackathonId, tutorialId);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error removing tutorial from hackathon:", error);
+      res.status(500).json({ error: "Failed to remove tutorial from hackathon" });
     }
   });
 

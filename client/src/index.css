@@ -143,3 +143,89 @@
     @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8;
   }
 }
+
+/* Syntax Highlighting for Markdown Code Blocks */
+.prose pre {
+  @apply bg-muted border border-border rounded-lg p-4 my-4 overflow-x-auto;
+}
+
+.prose code {
+  @apply bg-muted px-1.5 py-0.5 rounded text-sm border border-border;
+}
+
+.prose pre code {
+  @apply bg-transparent p-0 border-0 text-foreground;
+}
+
+/* Code syntax highlighting colors */
+.hljs-comment,
+.hljs-quote {
+  @apply text-muted-foreground italic;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-subst {
+  @apply text-primary font-semibold;
+}
+
+.hljs-number,
+.hljs-literal,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag .hljs-attr {
+  @apply text-accent;
+}
+
+.hljs-string,
+.hljs-doctag {
+  @apply text-secondary;
+}
+
+.hljs-title,
+.hljs-section,
+.hljs-selector-id {
+  @apply text-foreground font-semibold;
+}
+
+.hljs-subst {
+  @apply font-normal;
+}
+
+.hljs-type,
+.hljs-class .hljs-title {
+  @apply text-accent font-semibold;
+}
+
+.hljs-tag,
+.hljs-name,
+.hljs-attribute {
+  @apply text-primary;
+}
+
+.hljs-regexp,
+.hljs-link {
+  @apply text-secondary;
+}
+
+.hljs-symbol,
+.hljs-bullet {
+  @apply text-accent;
+}
+
+.hljs-built_in,
+.hljs-builtin-name {
+  @apply text-primary;
+}
+
+.hljs-meta {
+  @apply text-muted-foreground;
+}
+
+.hljs-deletion {
+  @apply bg-destructive/20 text-destructive;
+}
+
+.hljs-addition {
+  @apply bg-secondary/20 text-secondary;
+}

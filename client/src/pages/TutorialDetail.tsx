@@ -1,9 +1,10 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, Link } from "wouter";
 import { motion } from "framer-motion";
-import { BookOpen, ChevronLeft, CheckCircle2, Circle, Play, Star, Code2 } from "lucide-react";
+import { BookOpen, ChevronLeft, CheckCircle2, Circle, Play, Star, Code2, Video } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { Tutorial, Lesson } from "@shared/schema";
@@ -73,6 +74,12 @@ export default function TutorialDetail() {
               <Star className="w-3 h-3 text-yellow-500" />
               {tutorial.xpReward} XP total
             </div>
+            {tutorial.videoDuration && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-2">
+                <Video className="w-3 h-3" />
+                {tutorial.videoDuration}
+              </div>
+            )}
           </div>
 
           <div className="pixel-card p-4">
@@ -103,6 +110,38 @@ export default function TutorialDetail() {
         </div>
 
         <div className="lg:col-span-3">
+          {/* Video Player */}
+          {tutorial.videoUrl && (
+            <Card className="mb-6 overflow-hidden">
+              <div className="aspect-video bg-muted">
+                {tutorial.videoUrl.includes('youtube.com') || tutorial.videoUrl.includes('youtu.be') ? (
+                  <iframe
+                    className="w-full h-full"
+                    src={tutorial.videoUrl.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')}
+                    title={tutorial.title}
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                ) : (
+                  <video
+                    className="w-full h-full"
+                    controls
+                    poster={tutorial.videoThumbnail || undefined}
+                  >
+                    <source src={tutorial.videoUrl} type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                )}
+              </div>
+              {tutorial.videoThumbnail && !tutorial.videoUrl.includes('youtube') && (
+                <div className="p-4 bg-muted/50">
+                  <p className="text-sm text-muted-foreground">Video tutorial for {tutorial.title}</p>
+                </div>
+              )}
+            </Card>
+          )}
+
           {currentLesson ? (
             <motion.div
               key={currentLesson.id}

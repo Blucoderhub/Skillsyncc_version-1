@@ -106,16 +106,16 @@ export default function Certificates() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Calendar className="w-3 h-3" />
-                      {new Date(cert.issuedAt).toLocaleDateString()}
+                      {cert.issuedAt && new Date(cert.issuedAt).toLocaleDateString()}
                     </div>
                     <Button size="sm" variant="outline" className="gap-1" data-testid={`button-download-cert-${cert.id}`}>
                       <Download className="w-3 h-3" />
                       Download
                     </Button>
                   </div>
-                  {cert.verificationCode && (
+                  {cert.certificateType && (
                     <p className="text-xs text-muted-foreground mt-2">
-                      Verification: {cert.verificationCode}
+                      Type: {cert.certificateType}
                     </p>
                   )}
                 </CardContent>

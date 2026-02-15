@@ -34,9 +34,13 @@ export const tutorials = pgTable("tutorials", {
   slug: text("slug").notNull().unique(),
   title: text("title").notNull(),
   description: text("description").notNull(),
+  content: text("content"), // Rich markdown content for the tutorial overview
   category: text("category").notNull(), // 'Python', 'HTML', 'CSS', 'JavaScript', 'SQL'
   difficulty: text("difficulty").notNull().default("Beginner"),
   imageUrl: text("image_url"),
+  videoUrl: text("video_url"), // Video content support
+  videoThumbnail: text("video_thumbnail"), // Video thumbnail URL
+  videoDuration: text("video_duration"), // Video duration (e.g., "15:30")
   order: integer("order").notNull().default(0),
   lessonsCount: integer("lessons_count").default(0),
   xpReward: integer("xp_reward").default(500),
@@ -164,6 +168,16 @@ export const hackathons = pgTable("hackathons", {
   visibility: text("visibility").default("public"), // 'public', 'private', 'organization'
   hostedOnPlatform: boolean("hosted_on_platform").default(false),
   createdBy: text("created_by"),
+});
+
+// Tutorial-Hackathon junction table for project-based learning
+export const hackathonTutorials = pgTable("hackathon_tutorials", {
+  id: serial("id").primaryKey(),
+  hackathonId: integer("hackathon_id").notNull().references(() => hackathons.id),
+  tutorialId: integer("tutorial_id").notNull().references(() => tutorials.id),
+  relevance: text("relevance").default("recommended"), // 'required', 'recommended', 'optional'
+  order: integer("order").default(0), // Order in which tutorials should be completed
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // --- CERTIFICATES ---
@@ -350,6 +364,11 @@ export const lessonsRelations = relations(lessons, ({ one }) => ({
   }),
 }));
 
+export const tutorialsRelations = relations(tutorials, ({ many }) => ({
+  lessons: many(lessons),
+  hackathonTutorials: many(hackathonTutorials),
+}));
+
 export const answersRelations = relations(answers, ({ one }) => ({
   discussion: one(discussions, {
     fields: [answers.discussionId],
@@ -375,6 +394,14 @@ export const hackathonRegistrationsRelations = relations(hackathonRegistrations,
   }),
 }));
 
+export const hackathonsRelations = relations(hackathons, ({ many }) => ({
+  registrations: many(hackathonRegistrations),
+  teams: many(hackathonTeams),
+  submissions: many(hackathonSubmissions),
+  judgingCriteria: many(judgingCriteria),
+  hackathonTutorials: many(hackathonTutorials),
+}));
+
 export const hackathonTeamsRelations = relations(hackathonTeams, ({ one, many }) => ({
   hackathon: one(hackathons, {
     fields: [hackathonTeams.hackathonId],
@@ -396,6 +423,17 @@ export const hackathonSubmissionsRelations = relations(hackathonSubmissions, ({ 
     references: [hackathons.id],
   }),
   scores: many(judgingScores),
+}));
+
+export const hackathonTutorialsRelations = relations(hackathonTutorials, ({ one }) => ({
+  hackathon: one(hackathons, {
+    fields: [hackathonTutorials.hackathonId],
+    references: [hackathons.id],
+  }),
+  tutorial: one(tutorials, {
+    fields: [hackathonTutorials.tutorialId],
+    references: [tutorials.id],
+  }),
 }));
 
 export const judgingCriteriaRelations = relations(judgingCriteria, ({ one }) => ({
@@ -573,6 +611,7 @@ export const insertTeamMemberSchema = createInsertSchema(teamMembers).omit({ id:
 export const insertHackathonSubmissionSchema = createInsertSchema(hackathonSubmissions).omit({ id: true, submittedAt: true, score: true, rank: true, status: true });
 export const insertJudgingCriterionSchema = createInsertSchema(judgingCriteria).omit({ id: true });
 export const insertJudgingScoreSchema = createInsertSchema(judgingScores).omit({ id: true, scoredAt: true });
+export const insertHackathonTutorialSchema = createInsertSchema(hackathonTutorials).omit({ id: true, createdAt: true });
 
 // --- TYPES ---
 export type Problem = typeof problems.$inferSelect;
@@ -611,6 +650,8 @@ export type HackathonSubmission = typeof hackathonSubmissions.$inferSelect;
 export type InsertHackathonSubmission = z.infer<typeof insertHackathonSubmissionSchema>;
 export type JudgingCriterion = typeof judgingCriteria.$inferSelect;
 export type InsertJudgingCriterion = z.infer<typeof insertJudgingCriterionSchema>;
+export type HackathonTutorial = typeof hackathonTutorials.$inferSelect;
+export type InsertHackathonTutorial = z.infer<typeof insertHackathonTutorialSchema>;
 export type JudgingScore = typeof judgingScores.$inferSelect;
 export type InsertJudgingScore = z.infer<typeof insertJudgingScoreSchema>;
 

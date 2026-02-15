@@ -7,6 +7,7 @@ import type { Express, RequestHandler } from "express";
 import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { authStorage } from "./storage";
+import { configureAllStrategies } from "./multiAuth";
 
 const getOidcConfig = memoize(
   async () => {
@@ -63,6 +64,10 @@ async function upsertUser(claims: any) {
 export async function setupAuth(app: Express) {
   app.set("trust proxy", 1);
   app.use(getSession());
+  
+  // Configure all authentication strategies
+  configureAllStrategies();
+  
   app.use(passport.initialize());
   app.use(passport.session());
 

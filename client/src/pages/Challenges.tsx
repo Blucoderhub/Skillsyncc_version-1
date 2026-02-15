@@ -29,10 +29,7 @@ export default function Challenges() {
 
   const submitMutation = useMutation({
     mutationFn: async ({ challengeId, projectUrl, description }: { challengeId: number; projectUrl: string; description: string }) => {
-      return await apiRequest(`/api/challenges/${challengeId}/submit`, {
-        method: 'POST',
-        body: JSON.stringify({ projectUrl, description }),
-      });
+      return await apiRequest('POST', `/api/challenges/${challengeId}/submit`, { projectUrl, description });
     },
     onSuccess: () => {
       toast({
@@ -59,12 +56,12 @@ export default function Challenges() {
     },
   });
 
-  const activeChallenges = challenges.filter(c => c.isActive && new Date(c.endDate) >= new Date());
-  const upcomingChallenges = challenges.filter(c => !c.isActive && new Date(c.startDate) > new Date());
-  const pastChallenges = challenges.filter(c => new Date(c.endDate) < new Date());
+  const activeChallenges = challenges.filter(c => c.isActive && c.endDate && new Date(c.endDate) >= new Date());
+  const upcomingChallenges = challenges.filter(c => !c.isActive && c.startDate && new Date(c.startDate) > new Date());
+  const pastChallenges = challenges.filter(c => c.endDate && new Date(c.endDate) < new Date());
 
   const currentChallenge = activeChallenges[0];
-  const daysLeft = currentChallenge 
+  const daysLeft = currentChallenge && currentChallenge.endDate
     ? Math.max(0, Math.ceil((new Date(currentChallenge.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))
     : 0;
 
@@ -168,7 +165,7 @@ export default function Challenges() {
                   <div>
                     <p className="text-xs text-muted-foreground">Deadline</p>
                     <p className="font-medium text-sm">
-                      {new Date(currentChallenge.endDate).toLocaleDateString()}
+                      {currentChallenge.endDate && new Date(currentChallenge.endDate).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
@@ -252,7 +249,7 @@ export default function Challenges() {
                     </Button>
                   ) : (
                     <Button variant="outline" size="sm" disabled>
-                      Starts {new Date(challenge.startDate).toLocaleDateString()}
+                      Starts {challenge.startDate && new Date(challenge.startDate).toLocaleDateString()}
                     </Button>
                   )}
                 </CardFooter>

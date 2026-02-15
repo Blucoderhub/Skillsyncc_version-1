@@ -4,7 +4,7 @@ import {
   discussions, answers, votes, badges, userBadges, dailyChallenges, userLessonProgress,
   users, certificates, projects, monthlyChallenges, challengeSubmissions,
   organizations, organizationMembers, hackathonRegistrations, hackathonTeams,
-  teamMembers, hackathonSubmissions, judgingCriteria, judgingScores,
+  teamMembers, hackathonSubmissions, judgingCriteria, judgingScores, hackathonTutorials,
   cmsContent, contentVersions, contentAnalytics, errorLogs, systemMetrics, autoFixLogs,
   type Problem, type Submission, type UserProgress, type Hackathon, type Tutorial, type Lesson,
   type Discussion, type Answer, type Badge, type UserBadge, type User,
@@ -15,7 +15,8 @@ import {
   type JudgingCriterion, type JudgingScore, type UserRole,
   type InsertOrganization, type InsertHackathonSubmission, type InsertJudgingScore,
   type CmsContent, type InsertCmsContent, type ContentVersion, type ContentAnalyticsRow,
-  type ErrorLog, type InsertErrorLog, type SystemMetric, type AutoFixLog
+  type ErrorLog, type InsertErrorLog, type SystemMetric, type AutoFixLog,
+  type HackathonTutorial, type InsertHackathonTutorial
 } from "@shared/schema";
 import { eq, desc, sql, and, like, or, gte, lte, count, asc } from "drizzle-orm";
 
@@ -100,6 +101,12 @@ export interface IStorage {
   getUserHackathonRegistration(hackathonId: number, userId: string): Promise<HackathonRegistration | undefined>;
   withdrawFromHackathon(hackathonId: number, userId: string): Promise<void>;
   getHackathonRegistrationCount(hackathonId: number): Promise<number>;
+
+  // Tutorial-Hackathon Relationships
+  getHackathonTutorials(hackathonId: number): Promise<(HackathonTutorial & { tutorial: Tutorial })[]>;
+  createHackathonTutorial(data: InsertHackathonTutorial): Promise<HackathonTutorial>;
+  updateHackathonTutorial(hackathonId: number, tutorialId: number, data: Partial<HackathonTutorial>): Promise<HackathonTutorial>;
+  deleteHackathonTutorial(hackathonId: number, tutorialId: number): Promise<void>;
 
   // Teams
   createTeam(hackathonId: number, name: string, captainUserId: string): Promise<HackathonTeam>;
@@ -422,7 +429,7 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(badges, eq(userBadges.badgeId, badges.id))
       .where(eq(userBadges.userId, userId));
     
-    return result.map(r => ({
+    return result.map((r: any) => ({
       ...r,
       earnedAt: r.earnedAt || new Date()
     }));
@@ -623,7 +630,6 @@ export class DatabaseStorage implements IStorage {
         tutorialId: data.tutorialId,
         title: data.title,
         issuedAt: data.issuedAt,
-        verificationCode: `BCH-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`,
       })
       .returning();
     return certificate;
@@ -648,11 +654,11 @@ export class DatabaseStorage implements IStorage {
         userId: data.userId,
         title: data.title,
         description: data.description,
-        techStack: data.techStack,
-        liveUrl: data.liveUrl,
+        tags: data.techStack,
+        demoUrl: data.liveUrl,
         repoUrl: data.repoUrl,
         imageUrl: data.imageUrl,
-        isPublic: data.isPublic,
+        visibility: data.isPublic ? 'public' : 'private',
       })
       .returning();
     return project;
@@ -688,9 +694,8 @@ export class DatabaseStorage implements IStorage {
       .values({
         userId: data.userId,
         challengeId: data.challengeId,
-        projectUrl: data.projectUrl,
+        submissionUrl: data.projectUrl,
         description: data.description,
-        submittedAt: data.submittedAt,
         status: 'submitted',
       })
       .returning();
@@ -703,7 +708,7 @@ export class DatabaseStorage implements IStorage {
         eq(challengeSubmissions.userId, userId),
         eq(challengeSubmissions.challengeId, challengeId)
       ))
-      .orderBy(desc(challengeSubmissions.submittedAt));
+      .orderBy(desc(challengeSubmissions.createdAt));
   }
 
   async seedMonthlyChallenges(challengesData: any[]): Promise<void> {
@@ -874,6 +879,62 @@ export class DatabaseStorage implements IStorage {
     return result?.count || 0;
   }
 
+  // --- TUTORIAL-HACKATHON RELATIONSHIPS ---
+
+  async getHackathonTutorials(hackathonId: number): Promise<(HackathonTutorial & { tutorial: Tutorial })[]> {
+    const results = await db
+      .select({
+        id: hackathonTutorials.id,
+        hackathonId: hackathonTutorials.hackathonId,
+        tutorialId: hackathonTutorials.tutorialId,
+        relevance: hackathonTutorials.relevance,
+        order: hackathonTutorials.order,
+        createdAt: hackathonTutorials.createdAt,
+        tutorial: {
+          id: tutorials.id,
+          slug: tutorials.slug,
+          title: tutorials.title,
+          description: tutorials.description,
+          content: tutorials.content,
+          category: tutorials.category,
+          difficulty: tutorials.difficulty,
+          imageUrl: tutorials.imageUrl,
+          videoUrl: tutorials.videoUrl,
+          videoThumbnail: tutorials.videoThumbnail,
+          videoDuration: tutorials.videoDuration,
+          order: tutorials.order,
+          lessonsCount: tutorials.lessonsCount,
+          xpReward: tutorials.xpReward,
+        }
+      })
+      .from(hackathonTutorials)
+      .innerJoin(tutorials, eq(hackathonTutorials.tutorialId, tutorials.id))
+      .where(eq(hackathonTutorials.hackathonId, hackathonId))
+      .orderBy(asc(hackathonTutorials.order), asc(tutorials.title));
+    
+    return results as (HackathonTutorial & { tutorial: Tutorial })[];
+  }
+
+  async createHackathonTutorial(data: InsertHackathonTutorial): Promise<HackathonTutorial> {
+    const [hackathonTutorial] = await db.insert(hackathonTutorials).values(data).returning();
+    return hackathonTutorial;
+  }
+
+  async updateHackathonTutorial(hackathonId: number, tutorialId: number, data: Partial<HackathonTutorial>): Promise<HackathonTutorial> {
+    const [updated] = await db
+      .update(hackathonTutorials)
+      .set(data)
+      .where(and(eq(hackathonTutorials.hackathonId, hackathonId), eq(hackathonTutorials.tutorialId, tutorialId)))
+      .returning();
+    return updated;
+  }
+
+  async deleteHackathonTutorial(hackathonId: number, tutorialId: number): Promise<void> {
+    await db
+      .delete(hackathonTutorials)
+      .where(and(eq(hackathonTutorials.hackathonId, hackathonId), eq(hackathonTutorials.tutorialId, tutorialId)));
+  }
+
   // --- TEAMS ---
 
   async createTeam(hackathonId: number, name: string, captainUserId: string): Promise<HackathonTeam> {
@@ -889,7 +950,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(hackathonTeams.hackathonId, hackathonId))
       .orderBy(hackathonTeams.createdAt);
     
-    const teamsWithCount = await Promise.all(teams.map(async (team) => {
+    const teamsWithCount = await Promise.all(teams.map(async (team: any) => {
       const [result] = await db.select({ count: count() })
         .from(teamMembers)
         .where(eq(teamMembers.teamId, team.id));
@@ -1124,12 +1185,12 @@ export class DatabaseStorage implements IStorage {
     const allErrors = await db.select().from(errorLogs);
     const stats = {
       total: allErrors.length,
-      unresolved: allErrors.filter(e => !e.isResolved).length,
-      autoFixed: allErrors.filter(e => e.autoFixed).length,
+      unresolved: allErrors.filter((e: any) => !e.isResolved).length,
+      autoFixed: allErrors.filter((e: any) => e.autoFixed).length,
       byType: {} as Record<string, number>,
       bySeverity: {} as Record<string, number>,
     };
-    allErrors.forEach(e => {
+    allErrors.forEach((e: any) => {
       stats.byType[e.errorType] = (stats.byType[e.errorType] || 0) + 1;
       stats.bySeverity[e.severity] = (stats.bySeverity[e.severity] || 0) + 1;
     });

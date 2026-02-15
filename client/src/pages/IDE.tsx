@@ -193,6 +193,192 @@ int main() {
 }
 `,
   },
+  go: {
+    label: "Go",
+    extension: "go",
+    template: `// Go Playground
+// Start coding here!
+
+package main
+
+import "fmt"
+
+func main() {
+    fmt.Println("Hello, World!")
+    
+    // Example: Slice operations
+    numbers := []int{1, 2, 3, 4, 5}
+    sum := 0
+    for _, num := range numbers {
+        sum += num
+    }
+    fmt.Printf("Sum: %d\n", sum)
+}
+`,
+  },
+  rust: {
+    label: "Rust",
+    extension: "rs",
+    template: `// Rust Playground
+// Start coding here!
+
+fn main() {
+    println!("Hello, World!");
+    
+    // Example: Vector operations
+    let numbers = vec![1, 2, 3, 4, 5];
+    let sum: i32 = numbers.iter().sum();
+    println!("Sum: {}", sum);
+}
+`,
+  },
+  php: {
+    label: "PHP",
+    extension: "php",
+    template: `<?php
+// PHP Playground
+// Start coding here!
+
+echo "Hello, World!\n";
+
+// Example: Array operations
+$numbers = [1, 2, 3, 4, 5];
+$sum = array_sum($numbers);
+echo "Sum: " . $sum . "\n";
+
+// Example: Associative array
+$user = [
+    "name" => "John Doe",
+    "age" => 25,
+    "city" => "New York"
+];
+echo "User: " . $user["name"] . " from " . $user["city"] . "\n";
+?>
+`,
+  },
+  ruby: {
+    label: "Ruby",
+    extension: "rb",
+    template: `# Ruby Playground
+# Start coding here!
+
+puts "Hello, World!"
+
+# Example: Array operations
+numbers = [1, 2, 3, 4, 5]
+sum = numbers.sum
+puts "Sum: #{sum}"
+
+# Example: Hash (associative array)
+user = {
+  name: "John Doe",
+  age: 25,
+  city: "New York"
+}
+puts "User: #{user[:name]} from #{user[:city]}"
+`,
+  },
+  csharp: {
+    label: "C#",
+    extension: "cs",
+    template: `// C# Playground
+// Start coding here!
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+class Program
+{
+    static void Main()
+    {
+        Console.WriteLine("Hello, World!");
+        
+        // Example: List operations
+        List<int> numbers = new List<int> { 1, 2, 3, 4, 5 };
+        int sum = numbers.Sum();
+        Console.WriteLine($"Sum: {sum}");
+        
+        // Example: Dictionary
+        var user = new Dictionary<string, object>
+        {
+            { "name", "John Doe" },
+            { "age", 25 },
+            { "city", "New York" }
+        };
+        Console.WriteLine($"User: {user["name"]} from {user["city"]}");
+    }
+}
+`,
+  },
+  kotlin: {
+    label: "Kotlin",
+    extension: "kt",
+    template: `// Kotlin Playground
+// Start coding here!
+
+fun main() {
+    println("Hello, World!")
+    
+    // Example: List operations
+    val numbers = listOf(1, 2, 3, 4, 5)
+    val sum = numbers.sum()
+    println("Sum: $sum")
+    
+    // Example: Data class
+    data class User(val name: String, val age: Int, val city: String)
+    val user = User("John Doe", 25, "New York")
+    println("User: \${user.name} from \${user.city}")
+}
+`,
+  },
+  swift: {
+    label: "Swift",
+    extension: "swift",
+    template: `// Swift Playground
+// Start coding here!
+
+import Foundation
+
+print("Hello, World!")
+
+// Example: Array operations
+let numbers = [1, 2, 3, 4, 5]
+let sum = numbers.reduce(0, +)
+print("Sum: \\(sum)")
+
+// Example: Struct
+struct User {
+    let name: String
+    let age: Int
+    let city: String
+}
+let user = User(name: "John Doe", age: 25, city: "New York")
+print("User: \\(user.name) from \\(user.city)")
+`,
+  },
+  r: {
+    label: "R",
+    extension: "r",
+    template: `# R Playground
+# Start coding here!
+
+cat("Hello, World!\n")
+
+# Example: Vector operations
+numbers <- c(1, 2, 3, 4, 5)
+sum_result <- sum(numbers)
+cat("Sum:", sum_result, "\n")
+
+# Example: Data frame
+df <- data.frame(
+  name = c("John", "Jane", "Bob"),
+  age = c(25, 30, 35),
+  city = c("New York", "London", "Paris")
+)
+cat("First person:", df$name[1], "from", df$city[1], "\n")
+`,
+  },
 };
 
 export default function IDE() {
@@ -222,10 +408,21 @@ export default function IDE() {
     // Mock execution based on language
     let result = "";
     try {
+      // Dynamic language detection
+      const hasOutput = code.includes("print") || code.includes("console.log") || 
+                       code.includes("puts") || code.includes("echo") || 
+                       code.includes("fmt.") || code.includes("println!") ||
+                       code.includes("Console.WriteLine") || code.includes("printf") ||
+                       code.includes("cat(") || code.includes("puts");
+      
+      const hasSum = code.includes("sum") || code.includes("Sum") || 
+                    code.includes("array_sum") || code.includes(".sum") ||
+                    code.includes("numbers.Sum") || code.includes("reduce(0, +)");
+      
       if (language === "python" || language === "javascript" || language === "typescript") {
-        if (code.includes("print") || code.includes("console.log")) {
+        if (hasOutput) {
           result = "Hello, World!\n";
-          if (code.includes("sum") || code.includes("Sum")) {
+          if (hasSum) {
             result += "Sum: 15\n";
           }
           if (code.includes("doubled") || code.includes("Doubled")) {
@@ -241,6 +438,104 @@ export default function IDE() {
         result = "CSS Validation:\n\nNo syntax errors found.\nVariables defined: 4\nSelectors: 3\n\nStyles compiled successfully.";
       } else if (language === "sql") {
         result = "Query Results:\n\n| id | name  | email            |\n|----|-------|------------------|\n| 1  | Alice | alice@example.com|\n| 2  | Bob   | bob@example.com  |\n\n2 rows returned.";
+      } else if (language === "go") {
+        if (hasOutput) {
+          result = "Hello, World!\n";
+          if (hasSum) {
+            result += "Sum: 15\n";
+          }
+          result += "\nProcess finished with exit code 0";
+        } else {
+          result = "No output generated.\n\nProcess finished with exit code 0";
+        }
+      } else if (language === "rust") {
+        if (hasOutput) {
+          result = "Hello, World!\n";
+          if (hasSum) {
+            result += "Sum: 15\n";
+          }
+          result += "\nProcess finished with exit code 0";
+        } else {
+          result = "No output generated.\n\nProcess finished with exit code 0";
+        }
+      } else if (language === "php") {
+        if (hasOutput) {
+          result = "Hello, World!\n";
+          if (hasSum) {
+            result += "Sum: 15\n";
+          }
+          if (code.includes("User:")) {
+            result += "User: John Doe from New York\n";
+          }
+          result += "\nProcess finished with exit code 0";
+        } else {
+          result = "No output generated.\n\nProcess finished with exit code 0";
+        }
+      } else if (language === "ruby") {
+        if (hasOutput) {
+          result = "Hello, World!\n";
+          if (hasSum) {
+            result += "Sum: 15\n";
+          }
+          if (code.includes("User:")) {
+            result += "User: John Doe from New York\n";
+          }
+          result += "\nProcess finished with exit code 0";
+        } else {
+          result = "No output generated.\n\nProcess finished with exit code 0";
+        }
+      } else if (language === "csharp") {
+        if (hasOutput) {
+          result = "Hello, World!\n";
+          if (hasSum) {
+            result += "Sum: 15\n";
+          }
+          if (code.includes("User:")) {
+            result += "User: John Doe from New York\n";
+          }
+          result += "\nProcess finished with exit code 0";
+        } else {
+          result = "No output generated.\n\nProcess finished with exit code 0";
+        }
+      } else if (language === "kotlin") {
+        if (hasOutput) {
+          result = "Hello, World!\n";
+          if (hasSum) {
+            result += "Sum: 15\n";
+          }
+          if (code.includes("User:")) {
+            result += "User: John Doe from New York\n";
+          }
+          result += "\nProcess finished with exit code 0";
+        } else {
+          result = "No output generated.\n\nProcess finished with exit code 0";
+        }
+      } else if (language === "swift") {
+        if (hasOutput) {
+          result = "Hello, World!\n";
+          if (hasSum) {
+            result += "Sum: 15\n";
+          }
+          if (code.includes("User:")) {
+            result += "User: John Doe from New York\n";
+          }
+          result += "\nProcess finished with exit code 0";
+        } else {
+          result = "No output generated.\n\nProcess finished with exit code 0";
+        }
+      } else if (language === "r") {
+        if (hasOutput) {
+          result = "Hello, World!\n";
+          if (hasSum) {
+            result += "Sum: 15\n";
+          }
+          if (code.includes("First person:")) {
+            result += "First person: John from New York\n";
+          }
+          result += "\nProcess finished with exit code 0";
+        } else {
+          result = "No output generated.\n\nProcess finished with exit code 0";
+        }
       } else {
         result = "Hello, World!\nSum: 15\n\nProcess finished with exit code 0";
       }

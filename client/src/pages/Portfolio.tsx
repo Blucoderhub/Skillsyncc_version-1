@@ -24,6 +24,7 @@ interface ProjectFormData {
   liveUrl: string;
   repoUrl: string;
   techStack: string;
+  isPublic: boolean;
 }
 
 export default function Portfolio() {
@@ -48,16 +49,14 @@ export default function Portfolio() {
 
   const createProjectMutation = useMutation({
     mutationFn: async (data: ProjectFormData) => {
-      return await apiRequest("/api/portfolio", {
-        method: "POST",
-        body: JSON.stringify({
-          title: data.title,
-          description: data.description,
-          techStack: data.techStack.split(",").map(t => t.trim()).filter(Boolean),
-          liveUrl: data.liveUrl || null,
-          repoUrl: data.repoUrl || null,
-          imageUrl: null,
-        }),
+      return await apiRequest("POST", "/api/portfolio", {
+        title: data.title,
+        description: data.description,
+        techStack: data.techStack.split(",").map(t => t.trim()).filter(Boolean),
+        liveUrl: data.liveUrl || null,
+        repoUrl: data.repoUrl || null,
+        imageUrl: null,
+        isPublic: data.isPublic,
       });
     },
     onSuccess: () => {
@@ -273,14 +272,14 @@ export default function Portfolio() {
                     <div className="flex items-start justify-between">
                       <CardTitle className="text-lg">{project.title}</CardTitle>
                       <Badge variant="outline" className="text-xs">
-                        {project.isPublic ? "public" : "private"}
+                        {project.visibility === 'public' ? "public" : "private"}
                       </Badge>
                     </div>
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm text-muted-foreground mb-3">{project.description}</p>
                     <div className="flex flex-wrap gap-1 mb-3">
-                      {(project.techStack || []).map((tag) => (
+                      {(project.tags || []).map((tag) => (
                         <Badge key={tag} variant="secondary" className="text-xs">
                           {tag}
                         </Badge>
@@ -296,9 +295,9 @@ export default function Portfolio() {
                     </div>
                   </CardContent>
                   <CardFooter className="gap-2">
-                    {project.liveUrl && (
+                    {project.demoUrl && (
                       <Button size="sm" variant="outline" className="gap-1" asChild>
-                        <a href={project.liveUrl} target="_blank" rel="noopener noreferrer">
+                        <a href={project.demoUrl} target="_blank" rel="noopener noreferrer">
                           <ExternalLink className="w-3 h-3" /> Demo
                         </a>
                       </Button>

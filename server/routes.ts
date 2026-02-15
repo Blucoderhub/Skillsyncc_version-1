@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
+import { registerMultiAuthRoutes } from "./replit_integrations/auth/multiAuthRoutes";
 import { registerChatRoutes } from "./replit_integrations/chat";
 import { registerImageRoutes } from "./replit_integrations/image";
 import { registerAudioRoutes } from "./replit_integrations/audio";
@@ -99,6 +100,7 @@ export async function registerRoutes(
   // 1. Setup Auth
   await setupAuth(app);
   registerAuthRoutes(app);
+  registerMultiAuthRoutes(app);
   
   // 2. Setup Stripe (initialize and register routes)
   await initStripe();
@@ -202,7 +204,7 @@ export async function registerRoutes(
 
   // Problem Get
   app.get(api.problems.get.path, async (req: any, res) => {
-    const problem = await storage.getProblemBySlug(req.params.slug);
+    const problem = await storage.getProblemBySlug(req.params.slug as string);
     if (!problem) return res.status(404).json({ message: "Problem not found" });
     
     let isSolved = false;
@@ -458,7 +460,7 @@ export async function registerRoutes(
   // Update a portfolio project (Club members only)
   app.patch("/api/portfolio/:id", isAuthenticated, isClubMember, async (req, res) => {
     const userId = (req as any).user.claims.sub;
-    const projectId = parseInt(req.params.id);
+    const projectId = parseInt(req.params.id as string);
     const { title, description, techStack, liveUrl, repoUrl, imageUrl, isPublic } = req.body;
     
     const project = await storage.getProjectById(projectId);
@@ -470,7 +472,13 @@ export async function registerRoutes(
     }
     
     const updated = await storage.updateProject(projectId, {
-      title, description, techStack, liveUrl, repoUrl, imageUrl, isPublic
+      title, 
+      description, 
+      tags: techStack, 
+      demoUrl: liveUrl, 
+      repoUrl, 
+      imageUrl, 
+      visibility: isPublic ? 'public' : 'private'
     });
     
     res.json(updated);
@@ -479,7 +487,7 @@ export async function registerRoutes(
   // Delete a portfolio project (Club members only)
   app.delete("/api/portfolio/:id", isAuthenticated, isClubMember, async (req, res) => {
     const userId = (req as any).user.claims.sub;
-    const projectId = parseInt(req.params.id);
+    const projectId = parseInt(req.params.id as string);
     
     const project = await storage.getProjectById(projectId);
     if (!project) {
@@ -501,7 +509,7 @@ export async function registerRoutes(
 
   // Get single challenge details
   app.get("/api/challenges/:id", async (req, res) => {
-    const challengeId = parseInt(req.params.id);
+    const challengeId = parseInt(req.params.id as string);
     const challenge = await storage.getMonthlyChallengeById(challengeId);
     if (!challenge) {
       return res.status(404).json({ error: "Challenge not found" });
@@ -512,7 +520,7 @@ export async function registerRoutes(
   // Submit to a monthly challenge (Club members only)
   app.post("/api/challenges/:id/submit", isAuthenticated, isClubMember, async (req, res) => {
     const userId = (req as any).user.claims.sub;
-    const challengeId = parseInt(req.params.id);
+    const challengeId = parseInt(req.params.id as string);
     const { projectUrl, description } = req.body;
     
     const challenge = await storage.getMonthlyChallengeById(challengeId);
@@ -520,7 +528,7 @@ export async function registerRoutes(
       return res.status(404).json({ error: "Challenge not found" });
     }
     
-    if (new Date() > challenge.endDate) {
+    if (challenge.endDate && new Date() > new Date(challenge.endDate)) {
       return res.status(400).json({ error: "Challenge submission period has ended" });
     }
     
@@ -538,7 +546,7 @@ export async function registerRoutes(
   // Get user's challenge submissions
   app.get("/api/challenges/:id/submissions", isAuthenticated, async (req, res) => {
     const userId = (req as any).user.claims.sub;
-    const challengeId = parseInt(req.params.id);
+    const challengeId = parseInt(req.params.id as string);
     const submissions = await storage.getUserChallengeSubmissions(userId, challengeId);
     res.json(submissions);
   });
@@ -558,14 +566,14 @@ export async function registerRoutes(
   });
 
   app.get("/api/organizations/:id", async (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     const org = await storage.getOrganizationById(id);
     if (!org) return res.status(404).json({ error: "Organization not found" });
     res.json(org);
   });
 
   app.get("/api/organizations/slug/:slug", async (req: Request, res: Response) => {
-    const org = await storage.getOrganizationBySlug(req.params.slug);
+    const org = await storage.getOrganizationBySlug(req.params.slug as string);
     if (!org) return res.status(404).json({ error: "Organization not found" });
     res.json(org);
   });
@@ -595,7 +603,7 @@ export async function registerRoutes(
 
   app.patch("/api/organizations/:id", isAuthenticated, requireRole("corporate"), async (req: Request, res: Response) => {
     const userId = (req as any).user?.claims?.sub;
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     
     const role = await storage.getOrgMemberRole(id, userId);
     if (!role || !['owner', 'admin'].includes(role)) {
@@ -609,7 +617,7 @@ export async function registerRoutes(
 
   app.delete("/api/organizations/:id", isAuthenticated, async (req: Request, res: Response) => {
     const userId = (req as any).user?.claims?.sub;
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     
     const role = await storage.getOrgMemberRole(id, userId);
     if (role !== 'owner') {
@@ -621,14 +629,14 @@ export async function registerRoutes(
   });
 
   app.get("/api/organizations/:id/members", isAuthenticated, async (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     const members = await storage.getOrgMembers(id);
     res.json(members);
   });
 
   app.post("/api/organizations/:id/members", isAuthenticated, requireRole("corporate"), async (req: Request, res: Response) => {
     const currentUserId = (req as any).user?.claims?.sub;
-    const orgId = parseInt(req.params.id);
+    const orgId = parseInt(req.params.id as string);
     
     const role = await storage.getOrgMemberRole(orgId, currentUserId);
     if (!role || !['owner', 'admin'].includes(role)) {
@@ -647,8 +655,8 @@ export async function registerRoutes(
 
   app.delete("/api/organizations/:id/members/:userId", isAuthenticated, requireRole("corporate"), async (req: Request, res: Response) => {
     const currentUserId = (req as any).user?.claims?.sub;
-    const orgId = parseInt(req.params.id);
-    const targetUserId = req.params.userId;
+    const orgId = parseInt(req.params.id as string);
+    const targetUserId = req.params.userId as string;
     
     const role = await storage.getOrgMemberRole(orgId, currentUserId);
     if (!role || !['owner', 'admin'].includes(role)) {
@@ -679,7 +687,7 @@ export async function registerRoutes(
   });
 
   app.get("/api/hosted-hackathons/:id", async (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     const hackathon = await storage.getHackathonById(id);
     if (!hackathon) return res.status(404).json({ error: "Hackathon not found" });
     
@@ -731,7 +739,7 @@ export async function registerRoutes(
 
   app.patch("/api/hosted-hackathons/:id", isAuthenticated, requireRole("corporate"), async (req: Request, res: Response) => {
     const userId = (req as any).user?.claims?.sub;
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     
     const hackathon = await storage.getHackathonById(id);
     if (!hackathon) return res.status(404).json({ error: "Hackathon not found" });
@@ -754,7 +762,7 @@ export async function registerRoutes(
   // Registration
   app.post("/api/hosted-hackathons/:id/register", isAuthenticated, async (req: Request, res: Response) => {
     const userId = (req as any).user?.claims?.sub;
-    const hackathonId = parseInt(req.params.id);
+    const hackathonId = parseInt(req.params.id as string);
     
     const hackathon = await storage.getHackathonById(hackathonId);
     if (!hackathon) return res.status(404).json({ error: "Hackathon not found" });
@@ -779,20 +787,20 @@ export async function registerRoutes(
 
   app.get("/api/hosted-hackathons/:id/registration", isAuthenticated, async (req: Request, res: Response) => {
     const userId = (req as any).user?.claims?.sub;
-    const hackathonId = parseInt(req.params.id);
+    const hackathonId = parseInt(req.params.id as string);
     const reg = await storage.getUserHackathonRegistration(hackathonId, userId);
     res.json({ registered: !!reg, registration: reg || null });
   });
 
   app.delete("/api/hosted-hackathons/:id/register", isAuthenticated, async (req: Request, res: Response) => {
     const userId = (req as any).user?.claims?.sub;
-    const hackathonId = parseInt(req.params.id);
+    const hackathonId = parseInt(req.params.id as string);
     await storage.withdrawFromHackathon(hackathonId, userId);
     res.json({ success: true });
   });
 
   app.get("/api/hosted-hackathons/:id/registrations", isAuthenticated, async (req: Request, res: Response) => {
-    const hackathonId = parseInt(req.params.id);
+    const hackathonId = parseInt(req.params.id as string);
     const registrations = await storage.getHackathonRegistrations(hackathonId);
     res.json(registrations);
   });
@@ -800,7 +808,7 @@ export async function registerRoutes(
   // Teams
   app.post("/api/hosted-hackathons/:id/teams", isAuthenticated, async (req: Request, res: Response) => {
     const userId = (req as any).user?.claims?.sub;
-    const hackathonId = parseInt(req.params.id);
+    const hackathonId = parseInt(req.params.id as string);
     const { name } = req.body;
     
     if (!name) return res.status(400).json({ error: "Team name is required" });
@@ -813,14 +821,14 @@ export async function registerRoutes(
   });
 
   app.get("/api/hosted-hackathons/:id/teams", async (req: Request, res: Response) => {
-    const hackathonId = parseInt(req.params.id);
+    const hackathonId = parseInt(req.params.id as string);
     const teams = await storage.getHackathonTeams(hackathonId);
     res.json(teams);
   });
 
   app.post("/api/teams/:teamId/members", isAuthenticated, async (req: Request, res: Response) => {
     const userId = (req as any).user?.claims?.sub;
-    const teamId = parseInt(req.params.teamId);
+    const teamId = parseInt(req.params.teamId as string);
     
     const team = await storage.getTeamById(teamId);
     if (!team) return res.status(404).json({ error: "Team not found" });
@@ -834,7 +842,7 @@ export async function registerRoutes(
 
   app.delete("/api/teams/:teamId/members", isAuthenticated, async (req: Request, res: Response) => {
     const userId = (req as any).user?.claims?.sub;
-    const teamId = parseInt(req.params.teamId);
+    const teamId = parseInt(req.params.teamId as string);
     await storage.removeTeamMember(teamId, userId);
     res.json({ success: true });
   });
@@ -842,7 +850,7 @@ export async function registerRoutes(
   // Submissions
   app.post("/api/hosted-hackathons/:id/submissions", isAuthenticated, async (req: Request, res: Response) => {
     const userId = (req as any).user?.claims?.sub;
-    const hackathonId = parseInt(req.params.id);
+    const hackathonId = parseInt(req.params.id as string);
     const { title, description, repoUrl, demoUrl, videoUrl, teamId } = req.body;
     
     if (!title || !description) {
@@ -866,7 +874,7 @@ export async function registerRoutes(
   });
 
   app.get("/api/hosted-hackathons/:id/submissions", async (req: Request, res: Response) => {
-    const hackathonId = parseInt(req.params.id);
+    const hackathonId = parseInt(req.params.id as string);
     const subs = await storage.getHackathonSubmissions(hackathonId);
     res.json(subs);
   });
@@ -874,7 +882,7 @@ export async function registerRoutes(
   // Judging
   app.post("/api/hosted-hackathons/:id/criteria", isAuthenticated, requireRole("corporate"), async (req: Request, res: Response) => {
     const userId = (req as any).user?.claims?.sub;
-    const hackathonId = parseInt(req.params.id);
+    const hackathonId = parseInt(req.params.id as string);
     
     const hackathon = await storage.getHackathonById(hackathonId);
     if (!hackathon) return res.status(404).json({ error: "Hackathon not found" });
@@ -892,14 +900,14 @@ export async function registerRoutes(
   });
 
   app.get("/api/hosted-hackathons/:id/criteria", async (req: Request, res: Response) => {
-    const hackathonId = parseInt(req.params.id);
+    const hackathonId = parseInt(req.params.id as string);
     const criteria = await storage.getJudgingCriteria(hackathonId);
     res.json(criteria);
   });
 
   app.post("/api/submissions/:submissionId/score", isAuthenticated, requireRole("corporate"), async (req: Request, res: Response) => {
     const userId = (req as any).user?.claims?.sub;
-    const submissionId = parseInt(req.params.submissionId);
+    const submissionId = parseInt(req.params.submissionId as string);
     const { criterionId, score, comment } = req.body;
     
     if (!criterionId || score === undefined) {
@@ -917,7 +925,7 @@ export async function registerRoutes(
   });
 
   app.get("/api/submissions/:submissionId/scores", async (req: Request, res: Response) => {
-    const submissionId = parseInt(req.params.submissionId);
+    const submissionId = parseInt(req.params.submissionId as string);
     const scores = await storage.getSubmissionScores(submissionId);
     res.json(scores);
   });
@@ -950,7 +958,7 @@ export async function registerRoutes(
   });
 
   app.get("/api/cms/content/:id", async (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     const content = await storage.getCmsContentById(id);
     if (!content) return res.status(404).json({ error: "Content not found" });
     await storage.incrementContentViews(id);
@@ -958,7 +966,7 @@ export async function registerRoutes(
   });
 
   app.get("/api/cms/content/slug/:slug", async (req: Request, res: Response) => {
-    const content = await storage.getCmsContentBySlug(req.params.slug);
+    const content = await storage.getCmsContentBySlug(req.params.slug as string);
     if (!content) return res.status(404).json({ error: "Content not found" });
     await storage.incrementContentViews(content.id);
     res.json(content);
@@ -1001,7 +1009,7 @@ export async function registerRoutes(
 
   app.patch("/api/cms/content/:id", isAuthenticated, requireRole("admin"), async (req: Request, res: Response) => {
     const userId = (req as any).user?.claims?.sub;
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     const { contentJson, isAutoSave, changeLog, ...updates } = req.body;
 
     const existing = await storage.getCmsContentById(id);
@@ -1020,7 +1028,7 @@ export async function registerRoutes(
   });
 
   app.post("/api/cms/content/:id/publish", isAuthenticated, requireRole("admin"), async (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     const existing = await storage.getCmsContentById(id);
     if (!existing) return res.status(404).json({ error: "Content not found" });
 
@@ -1029,21 +1037,21 @@ export async function registerRoutes(
   });
 
   app.delete("/api/cms/content/:id", isAuthenticated, requireRole("admin"), async (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     await storage.deleteCmsContent(id);
     res.json({ success: true });
   });
 
   app.get("/api/cms/content/:id/versions", async (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     const versions = await storage.getContentVersions(id);
     res.json(versions);
   });
 
   app.post("/api/cms/content/:id/restore/:versionNumber", isAuthenticated, requireRole("admin"), async (req: Request, res: Response) => {
     const userId = (req as any).user?.claims?.sub;
-    const id = parseInt(req.params.id);
-    const versionNumber = parseInt(req.params.versionNumber);
+    const id = parseInt(req.params.id as string);
+    const versionNumber = parseInt(req.params.versionNumber as string);
 
     const version = await storage.getContentVersion(id, versionNumber);
     if (!version) return res.status(404).json({ error: "Version not found" });
@@ -1055,13 +1063,13 @@ export async function registerRoutes(
   });
 
   app.get("/api/cms/content/:id/analytics", async (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     const analytics = await storage.getContentAnalytics(id);
     res.json(analytics || { views: 0, completions: 0 });
   });
 
   app.post("/api/cms/content/:id/complete", isAuthenticated, async (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     await storage.incrementContentCompletions(id);
     res.json({ success: true });
   });
@@ -1120,14 +1128,14 @@ export async function registerRoutes(
   });
 
   app.post("/api/monitoring/errors/:id/resolve", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.params.id as string);
     const { fixApplied } = req.body;
     await storage.resolveError(id, fixApplied);
     res.json({ success: true });
   });
 
   app.get("/api/monitoring/metrics/:type", isAuthenticated, isAdmin, async (req: Request, res: Response) => {
-    const metrics = await storage.getRecentMetrics(req.params.type, 100);
+    const metrics = await storage.getRecentMetrics(req.params.type as string, 100);
     res.json(metrics);
   });
 

@@ -34,12 +34,25 @@ export default function Pricing() {
   const { user } = useAuth();
   const [billingPeriod, setBillingPeriod] = useState<"monthly" | "yearly">("monthly");
 
-  const { data: subscription } = useQuery({
+  const { data: subscription } = useQuery<{
+    membershipStatus?: string;
+  }>({
     queryKey: ["/api/subscription"],
     enabled: !!user,
   });
 
-  const { data: productsData } = useQuery({
+  const { data: productsData } = useQuery<{
+    data?: Array<{
+      id: string;
+      name?: string;
+      prices?: Array<{
+        id: string;
+        unit_amount: number;
+        currency: string;
+        recurring?: { interval: string };
+      }>;
+    }>;
+  }>({
     queryKey: ["/api/products"],
   });
 
