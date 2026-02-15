@@ -145,6 +145,6 @@
     "bufferutil": "^4.0.8"
   },
   "engines": {
-    "node": "24.x"
+    "node": "18.x"
   }
 }
