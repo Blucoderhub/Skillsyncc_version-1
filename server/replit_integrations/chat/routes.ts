@@ -3,8 +3,9 @@ import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenAI } from "@google/genai";
 import { chatStorage } from "./storage";
+import { buildSystemPrompt, getGreeting, SYNCC_AI_MODES } from "./syncc-ai-prompt";
+import { storage } from "../../storage";
 
-// Initialize AI clients
 const openai = new OpenAI({
   apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
   baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
@@ -23,7 +24,6 @@ const gemini = new GoogleGenAI({
   },
 });
 
-// Available models configuration
 const AVAILABLE_MODELS = {
   openai: [
     { id: "gpt-5", name: "GPT-5", provider: "openai" },
@@ -40,13 +40,46 @@ const AVAILABLE_MODELS = {
   ],
 };
 
+async function getUserContext(req: Request) {
+  const userId = (req as any).session?.userId;
+  if (!userId) {
+    return { userName: "Coder", userLevel: 1, userXp: 0, userStreak: 0 };
+  }
+  try {
+    const user = await storage.getUser(userId);
+    const progress = await storage.getUserProgress(userId);
+    return {
+      userName: user?.firstName || "Coder",
+      userLevel: progress?.level || 1,
+      userXp: progress?.xp || 0,
+      userStreak: progress?.streak || 0,
+    };
+  } catch {
+    return { userName: "Coder", userLevel: 1, userXp: 0, userStreak: 0 };
+  }
+}
+
 export function registerChatRoutes(app: Express): void {
-  // Get available AI models
   app.get("/api/ai/models", (_req: Request, res: Response) => {
     res.json(AVAILABLE_MODELS);
   });
 
-  // Get all conversations
+  app.get("/api/ai/modes", (_req: Request, res: Response) => {
+    res.json(SYNCC_AI_MODES);
+  });
+
+  app.get("/api/ai/greeting", async (req: Request, res: Response) => {
+    try {
+      const mode = (req.query.mode as string) || "tutor";
+      const ctx = await getUserContext(req);
+      const greeting = getGreeting(ctx.userName, ctx.userLevel, ctx.userStreak, mode);
+      res.json({ greeting, ...ctx });
+    } catch (error) {
+      console.error("Error getting AI greeting:", error);
+      res.json({ greeting: "Hey! I'm Syncc AI, your coding companion. What would you like to learn today?" });
+    }
+  });
+
   app.get("/api/conversations", async (req: Request, res: Response) => {
     try {
       const conversations = await chatStorage.getAllConversations();
@@ -57,7 +90,6 @@ export function registerChatRoutes(app: Express): void {
     }
   });
 
-  // Get single conversation with messages
   app.get("/api/conversations/:id", async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id as string);
@@ -73,7 +105,6 @@ export function registerChatRoutes(app: Express): void {
     }
   });
 
-  // Create new conversation
   app.post("/api/conversations", async (req: Request, res: Response) => {
     try {
       const { title } = req.body;
@@ -85,7 +116,6 @@ export function registerChatRoutes(app: Express): void {
     }
   });
 
-  // Delete conversation
   app.delete("/api/conversations/:id", async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id as string);
@@ -97,19 +127,18 @@ export function registerChatRoutes(app: Express): void {
     }
   });
 
-  // Send message and get AI response (streaming with model selection)
   app.post("/api/conversations/:id/messages", async (req: Request, res: Response) => {
     try {
       const conversationId = parseInt(req.params.id as string);
-      const { content, model = "gpt-5", provider = "openai" } = req.body;
+      const { content, model = "gpt-5", provider = "openai", mode = "tutor" } = req.body;
 
-      // Save user message
       await chatStorage.createMessage(conversationId, "user", content);
 
-      // Get conversation history for context
       const messages = await chatStorage.getMessagesByConversation(conversationId);
 
-      // Set up SSE
+      const ctx = await getUserContext(req);
+      const systemPrompt = buildSystemPrompt({ mode, ...ctx });
+
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
@@ -117,16 +146,19 @@ export function registerChatRoutes(app: Express): void {
       let fullResponse = "";
 
       if (provider === "openai") {
-        const chatMessages = messages.map((m) => ({
-          role: m.role as "user" | "assistant",
-          content: m.content,
-        }));
+        const chatMessages: OpenAI.ChatCompletionMessageParam[] = [
+          { role: "system", content: systemPrompt },
+          ...messages.map((m) => ({
+            role: m.role as "user" | "assistant",
+            content: m.content,
+          })),
+        ];
 
         const stream = await openai.chat.completions.create({
           model: model,
           messages: chatMessages,
           stream: true,
-          max_completion_tokens: 2048,
+          max_completion_tokens: 4096,
         });
 
         for await (const chunk of stream) {
@@ -144,7 +176,8 @@ export function registerChatRoutes(app: Express): void {
 
         const stream = anthropic.messages.stream({
           model: model,
-          max_tokens: 2048,
+          max_tokens: 4096,
+          system: systemPrompt,
           messages: chatMessages,
         });
 
@@ -165,7 +198,11 @@ export function registerChatRoutes(app: Express): void {
 
         const stream = await gemini.models.generateContentStream({
           model: model,
-          contents: chatMessages,
+          contents: [
+            { role: "user", parts: [{ text: systemPrompt }] },
+            { role: "model", parts: [{ text: "Understood. I am Syncc AI, ready to help." }] },
+            ...chatMessages,
+          ],
         });
 
         for await (const chunk of stream) {
@@ -179,7 +216,6 @@ export function registerChatRoutes(app: Express): void {
         throw new Error(`Unknown provider: ${provider}`);
       }
 
-      // Save assistant message
       await chatStorage.createMessage(conversationId, "assistant", fullResponse);
 
       res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
