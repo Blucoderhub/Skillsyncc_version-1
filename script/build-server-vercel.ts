@@ -32,7 +32,7 @@ const allowlist = [
 
 async function buildServer() {
   console.log("Building server for Vercel...");
-  
+
   const pkg = JSON.parse(await readFile("package.json", "utf-8"));
   const allDeps = [
     ...Object.keys(pkg.dependencies || {}),
@@ -53,7 +53,7 @@ async function buildServer() {
     minify: true,
     external: externals,
     logLevel: "info",
-    target: "node18",
+    target: "node22",
   });
 
   console.log("Server build complete!");
