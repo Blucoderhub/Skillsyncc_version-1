@@ -1,4 +1,4 @@
-// Stripe service for BlueCoderHub - based on stripe integration blueprint
+// Stripe service for Skillsyncc - based on stripe integration blueprint
 import { getUncachableStripeClient } from './stripeClient';
 import { db } from '../db';
 import { sql } from 'drizzle-orm';

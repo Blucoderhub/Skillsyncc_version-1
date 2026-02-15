@@ -637,7 +637,7 @@ export async function registerRoutes(
       prizePool: prizePool || null,
       rules: rules || null,
       hostOrgId: hostOrgId || null,
-      platform: 'BlueCoderHub',
+      platform: 'Skillsyncc',
       tags: tags || [],
       imageUrl: imageUrl || null,
       status: 'open',

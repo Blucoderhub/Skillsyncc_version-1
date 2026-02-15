@@ -33,9 +33,9 @@ export function Navigation() {
     <header className="shrink-0 z-50 w-full border-b-2 border-border bg-background">
       <div className="max-w-full px-2 sm:px-4 py-2 flex h-14 items-center justify-between gap-1">
         <Link href="/" className="flex items-center gap-2 group shrink-0" data-testid="link-home-logo">
-          <img src={logoImg} alt="BlueCoderHub" className="h-9 w-9 rounded-md object-contain group-hover:rotate-12 transition-transform" />
+          <img src={logoImg} alt="Skillsyncc" className="h-9 w-9 rounded-md object-contain group-hover:rotate-12 transition-transform" />
           <span className="font-display text-sm text-primary tracking-tighter hidden lg:block">
-            BCH
+            Skillsyncc
           </span>
         </Link>
 

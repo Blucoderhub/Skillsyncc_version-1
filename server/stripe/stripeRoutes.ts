@@ -1,4 +1,4 @@
-// Stripe routes for BlueCoderHub Club membership - based on stripe integration blueprint
+// Stripe routes for Skillsyncc Club membership - based on stripe integration blueprint
 import type { Express } from "express";
 import express from "express";
 import { stripeService } from "./stripeService";

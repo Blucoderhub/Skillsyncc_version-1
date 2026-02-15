@@ -75,7 +75,7 @@ export default function Hackathons() {
             <div className="col-span-full text-center py-16">
               <Trophy className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-lg font-bold mb-2">No Platform Hackathons Yet</h3>
-              <p className="text-muted-foreground mb-4">Be the first to host a hackathon on BlueCoderHub!</p>
+              <p className="text-muted-foreground mb-4">Be the first to host a hackathon on Skillsyncc!</p>
               <Link href="/hackathons/create">
                 <Button data-testid="button-create-first-hackathon">
                   <Plus className="h-4 w-4 mr-2" />

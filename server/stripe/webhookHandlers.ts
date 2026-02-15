@@ -1,4 +1,4 @@
-// Webhook handlers for BlueCoderHub - based on stripe integration blueprint
+// Webhook handlers for Skillsyncc - based on stripe integration blueprint
 import { getStripeSync } from './stripeClient';
 
 export class WebhookHandlers {

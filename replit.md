@@ -1,7 +1,7 @@
-# BlueCoderHub
+# Skillsyncc (Powered by Bluecoderhub)
 
 ## Overview
-BlueCoderHub is a gamified ed-tech platform inspired by Codedex.io, combining features from HackerEarth, HackerRank, LeetCode, StackOverflow, and W3Schools. The platform features a retro-futuristic gaming aesthetic with XP-based progression.
+Skillsyncc is a gamified ed-tech platform inspired by Codedex.io, combining features from HackerEarth, HackerRank, LeetCode, StackOverflow, and W3Schools. The platform features a retro-futuristic gaming aesthetic with XP-based progression. Powered by Bluecoderhub.
 
 ## Tech Stack
 - **Frontend**: React + Vite + TypeScript

@@ -19,10 +19,13 @@ export function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="space-y-4">
             <Link href="/" className="flex items-center gap-3 group" data-testid="footer-link-home">
-              <img src={logoImg} alt="BlueCoderHub" className="h-10 w-10 rounded-lg object-contain" />
-              <span className="font-display text-lg text-primary tracking-tighter">
-                BlueCoder<span className="text-secondary">Hub</span>
-              </span>
+              <img src={logoImg} alt="Skillsyncc" className="h-10 w-10 rounded-lg object-contain" />
+              <div className="flex flex-col">
+                <span className="font-display text-lg text-primary tracking-tighter">
+                  Skill<span className="text-secondary">syncc</span>
+                </span>
+                <span className="text-[9px] text-muted-foreground tracking-wide">Powered by Bluecoderhub</span>
+              </div>
             </Link>
             <p className="text-sm text-muted-foreground max-w-xs">
               Your gamified journey to mastering code. Learn, practice, and compete with coders worldwide.
@@ -83,7 +86,7 @@ export function Footer() {
 
         <div className="border-t border-border mt-8 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-xs text-muted-foreground">
-            &copy; {new Date().getFullYear()} BlueCoderHub. All rights reserved.
+            &copy; {new Date().getFullYear()} Skillsyncc. All rights reserved. Powered by Bluecoderhub.
           </p>
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <Link href="/privacy" className="hover:text-foreground transition-colors" data-testid="footer-link-privacy">Privacy Policy</Link>

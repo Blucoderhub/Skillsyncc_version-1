@@ -81,7 +81,7 @@ export default function CreateHackathon() {
           : [],
         hostOrgId: data.hostOrgId ? parseInt(data.hostOrgId, 10) : null,
         url: "",
-        platform: "BlueCoderHub",
+        platform: "Skillsyncc",
       });
     },
     onSuccess: () => {

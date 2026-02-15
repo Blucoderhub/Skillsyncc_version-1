@@ -22,7 +22,7 @@ export default function Privacy() {
           <CardContent className="pt-6 space-y-4">
             <h2 className="font-display text-lg text-primary">1. Information We Collect</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              When you use BlueCoderHub, we collect information you provide directly, such as your name, email address, and profile details through our authentication provider. We also collect usage data including your coding submissions, progress, XP earned, and interaction with the platform.
+              When you use Skillsyncc, we collect information you provide directly, such as your name, email address, and profile details through our authentication provider. We also collect usage data including your coding submissions, progress, XP earned, and interaction with the platform.
             </p>
           </CardContent>
         </Card>
@@ -31,7 +31,7 @@ export default function Privacy() {
           <CardContent className="pt-6 space-y-4">
             <h2 className="font-display text-lg text-primary">2. How We Use Your Information</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              We use your information to provide and improve BlueCoderHub services, track your learning progress, manage your account, display your profile and achievements on leaderboards, process Club membership subscriptions, and communicate with you about platform updates.
+              We use your information to provide and improve Skillsyncc services, track your learning progress, manage your account, display your profile and achievements on leaderboards, process Club membership subscriptions, and communicate with you about platform updates.
             </p>
           </CardContent>
         </Card>

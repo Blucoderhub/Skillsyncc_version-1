@@ -22,7 +22,7 @@ export default function Terms() {
           <CardContent className="pt-6 space-y-4">
             <h2 className="font-display text-lg text-primary">1. Acceptance of Terms</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              By accessing and using BlueCoderHub, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the platform.
+              By accessing and using Skillsyncc, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the platform.
             </p>
           </CardContent>
         </Card>
@@ -40,7 +40,7 @@ export default function Terms() {
           <CardContent className="pt-6 space-y-4">
             <h2 className="font-display text-lg text-primary">3. Code Submissions</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              You retain ownership of the code you submit. By submitting code to challenges, hackathons, or practice problems, you grant BlueCoderHub a non-exclusive license to execute and evaluate your code for grading and display purposes.
+              You retain ownership of the code you submit. By submitting code to challenges, hackathons, or practice problems, you grant Skillsyncc a non-exclusive license to execute and evaluate your code for grading and display purposes.
             </p>
           </CardContent>
         </Card>
@@ -67,7 +67,7 @@ export default function Terms() {
           <CardContent className="pt-6 space-y-4">
             <h2 className="font-display text-lg text-primary">6. Intellectual Property</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              All platform content, including coding problems, tutorials, and course materials, is the property of BlueCoderHub. You may not reproduce, distribute, or create derivative works from our content without permission.
+              All platform content, including coding problems, tutorials, and course materials, is the property of Skillsyncc. You may not reproduce, distribute, or create derivative works from our content without permission.
             </p>
           </CardContent>
         </Card>
@@ -76,7 +76,7 @@ export default function Terms() {
           <CardContent className="pt-6 space-y-4">
             <h2 className="font-display text-lg text-primary">7. Limitation of Liability</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">
-              BlueCoderHub is provided "as is" without warranties of any kind. We are not liable for any damages arising from your use of the platform, including but not limited to loss of data or code submissions.
+              Skillsyncc is provided "as is" without warranties of any kind. We are not liable for any damages arising from your use of the platform, including but not limited to loss of data or code submissions.
             </p>
           </CardContent>
         </Card>

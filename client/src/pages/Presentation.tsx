@@ -68,13 +68,14 @@ export default function Presentation() {
   const slides: Slide[] = [
     {
       id: "title",
-      title: "BlueCoderHub",
+      title: "Skillsyncc",
       content: (
         <div className="flex flex-col items-center justify-center h-full gap-6 text-center">
-          <img src={logoImage} alt="BlueCoderHub" className="w-28 h-28 rounded-2xl shadow-lg" />
+          <img src={logoImage} alt="Skillsyncc" className="w-28 h-28 rounded-2xl shadow-lg" />
           <div>
-            <h1 className="text-4xl font-bold tracking-tight mb-3">BlueCoderHub</h1>
-            <p className="text-xl text-muted-foreground max-w-lg mx-auto">
+            <h1 className="text-4xl font-bold tracking-tight mb-3">Skillsyncc</h1>
+            <p className="text-lg text-muted-foreground">Powered by Bluecoderhub</p>
+            <p className="text-xl text-muted-foreground max-w-lg mx-auto mt-2">
               A Gamified Ed-Tech Platform for the Next Generation of Developers
             </p>
           </div>
@@ -491,7 +492,7 @@ export default function Presentation() {
       title: "Summary",
       content: (
         <div className="flex flex-col items-center justify-center h-full gap-6 text-center">
-          <img src={logoImage} alt="BlueCoderHub" className="w-20 h-20 rounded-2xl shadow-lg" />
+          <img src={logoImage} alt="Skillsyncc" className="w-20 h-20 rounded-2xl shadow-lg" />
           <h2 className="text-3xl font-bold">Complete Feature Summary</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-2xl">
             <StatBox value="8" label="Core Modules" icon={Layers} />
@@ -513,7 +514,7 @@ export default function Presentation() {
           <p className="text-muted-foreground text-sm max-w-md mt-2">
             Built with React, Express, PostgreSQL, Drizzle ORM, Stripe, OpenAI, and Monaco Editor
           </p>
-          <p className="text-xs text-muted-foreground">connect@bluecoderhub.com</p>
+          <p className="text-xs text-muted-foreground">Powered by Bluecoderhub | connect@bluecoderhub.com</p>
         </div>
       ),
     },
@@ -546,8 +547,8 @@ export default function Presentation() {
     <div className="min-h-screen bg-background flex flex-col" data-testid="presentation-page">
       <div className="flex items-center justify-between p-3 border-b gap-2">
         <div className="flex items-center gap-3">
-          <img src={logoImage} alt="BlueCoderHub" className="w-8 h-8 rounded-md" />
-          <span className="font-semibold text-sm hidden sm:inline">BlueCoderHub Feature Presentation</span>
+          <img src={logoImage} alt="Skillsyncc" className="w-8 h-8 rounded-md" />
+          <span className="font-semibold text-sm hidden sm:inline">Skillsyncc Feature Presentation</span>
         </div>
         <SlideCounter current={currentSlide + 1} total={slides.length} />
         <div className="flex items-center gap-1">

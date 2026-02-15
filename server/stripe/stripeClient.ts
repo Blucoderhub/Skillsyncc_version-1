@@ -1,4 +1,4 @@
-// Stripe client for BlueCoderHub - based on stripe integration blueprint
+// Stripe client for Skillsyncc - based on stripe integration blueprint
 import Stripe from 'stripe';
 
 let connectionSettings: any;

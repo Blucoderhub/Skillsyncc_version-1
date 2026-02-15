@@ -1,4 +1,4 @@
-// Stripe product seeding script for BlueCoderHub Club membership
+// Stripe product seeding script for Skillsyncc Club membership
 // Run with: npx tsx server/stripe/seed-products.ts
 
 import { getUncachableStripeClient } from './stripeClient';
@@ -10,7 +10,7 @@ async function seedClubProducts() {
   
   // Check if Club product already exists
   const existingProducts = await stripe.products.search({ 
-    query: "name:'BlueCoderHub Club'" 
+    query: "name:'Skillsyncc Club'" 
   });
   
   if (existingProducts.data.length > 0) {
@@ -20,11 +20,11 @@ async function seedClubProducts() {
     return;
   }
 
-  console.log('Creating BlueCoderHub Club product...');
+  console.log('Creating Skillsyncc Club product...');
   
   // Create Club membership product
   const clubProduct = await stripe.products.create({
-    name: 'BlueCoderHub Club',
+    name: 'Skillsyncc Club',
     description: 'Premium membership with full access to all courses, certificates, code mentors, unlimited AI help, and exclusive events.',
     images: [],
     metadata: {

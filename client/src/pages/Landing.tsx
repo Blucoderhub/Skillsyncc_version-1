@@ -75,10 +75,13 @@ export default function Landing() {
             animate={{ opacity: 1, x: 0 }}
             className="flex items-center gap-3"
           >
-            <img src={logoImg} alt="BlueCoderHub" className="h-10 w-10 rounded-xl object-contain" />
-            <span className="text-xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
-              BlueCoder<span className="text-primary">Hub</span>
-            </span>
+            <img src={logoImg} alt="Skillsyncc" className="h-10 w-10 rounded-xl object-contain" />
+            <div className="flex flex-col">
+              <span className="text-xl font-bold tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+                Skill<span className="text-primary">syncc</span>
+              </span>
+              <span className="text-[8px] text-gray-500 tracking-wider">Powered by Bluecoderhub</span>
+            </div>
           </motion.div>
 
           <div className="flex gap-4">
