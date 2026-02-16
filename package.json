@@ -4,16 +4,9 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "dev": "NODE_ENV=development tsx server/index.ts",
+    "dev": "vite",
     "build": "vite build",
-    "build:vercel": "vite build",
-    "build:client": "vite build",
-    "build:server": "tsx script/build-server-vercel.ts",
-    "start": "NODE_ENV=production node dist/index.cjs",
-    "start:vercel": "node api/index.js",
-    "check": "tsc",
-    "db:push": "drizzle-kit push",
-    "vercel-build": "npm run build:vercel"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
