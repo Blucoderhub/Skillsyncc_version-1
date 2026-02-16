@@ -5,11 +5,27 @@ const require = createRequire(import.meta.url);
 let app;
 
 export default async (req, res) => {
+  console.log(`[bridge] Handling request: ${req.method} ${req.url}`);
+
   if (!app) {
-    // Import the pre-bundled server code
-    const serverModule = await import('../dist/index.cjs');
-    // Call setupApp from the bundled module
-    app = await serverModule.setupApp();
+    try {
+      console.log(`[bridge] Initializing bundled server...`);
+      // Import the pre-bundled server code
+      const serverModule = await import('../dist/index.cjs');
+      // Call setupApp from the bundled module
+      app = await serverModule.setupApp();
+      console.log(`[bridge] Bundled server initialized successfully.`);
+    } catch (error) {
+      console.error(`[bridge] Failed to initialize bundled server:`, error);
+      res.status(500).send(`Internal Server Error: Bridge initialization failed. ${error.message}`);
+      return;
+    }
   }
-  return app(req, res);
+
+  try {
+    return app(req, res);
+  } catch (error) {
+    console.error(`[bridge] App execution error:`, error);
+    res.status(500).send(`Internal Server Error: Application execution failed. ${error.message}`);
+  }
 };
