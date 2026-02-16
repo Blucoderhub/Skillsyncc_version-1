@@ -1,8 +1,10 @@
 {
   "version": 2,
+  "buildCommand": "npm run build:vercel",
+  "outputDirectory": "dist/public",
   "functions": {
     "api/index.js": {
-      "runtime": "@vercel/node",
+      "runtime": "nodejs18.x",
       "maxDuration": 30,
       "includeFiles": "dist/**"
     }
@@ -16,7 +18,7 @@
     },
     {
       "source": "/(assets/.*)",
-      "destination": "/dist/public/$1"
+      "destination": "/$1"
     },
     {
       "source": "/((?!api/).*)",
