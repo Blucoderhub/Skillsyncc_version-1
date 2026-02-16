@@ -89,8 +89,8 @@ export async function setupApp() {
 if (!process.env.VERCEL) {
   (async () => {
     const app = await setupApp();
-    const port = process.env.PORT || 3001;
-    app.listen(port, () => {
+    const port = parseInt(process.env.PORT || "3001", 10);
+    app.listen(port, "0.0.0.0", () => {
       console.log(`Server running on port ${port}`);
     });
   })();
