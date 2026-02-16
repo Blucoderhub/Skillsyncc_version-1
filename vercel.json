@@ -4,7 +4,7 @@
   "outputDirectory": "dist/public",
   "functions": {
     "api/index.js": {
-      "runtime": "nodejs@18",
+      "runtime": "nodejs@18.x",
       "maxDuration": 30,
       "includeFiles": "dist/**"
     }
