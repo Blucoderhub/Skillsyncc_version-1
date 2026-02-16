@@ -22,12 +22,19 @@ const getOidcConfig = memoize(
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   const pgStore = connectPg(session);
+  const dbUrl = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+
+  if (!dbUrl) {
+    throw new Error("POSTGRES_URL or DATABASE_URL must be set for session storage");
+  }
+
   const sessionStore = new pgStore({
-    conString: process.env.DATABASE_URL,
+    conString: dbUrl,
     createTableIfMissing: false,
-    ttl: sessionTtl,
+    ttl: sessionTtl / 1000, // connect-pg-simple expects seconds
     tableName: "sessions",
   });
+
   return session({
     secret: process.env.SESSION_SECRET!,
     store: sessionStore,
@@ -35,8 +42,9 @@ export function getSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === "production" || !!process.env.VERCEL,
       maxAge: sessionTtl,
+      sameSite: "lax",
     },
   });
 }
@@ -64,10 +72,10 @@ async function upsertUser(claims: any) {
 export async function setupAuth(app: Express) {
   app.set("trust proxy", 1);
   app.use(getSession());
-  
+
   // Configure all authentication strategies
   configureAllStrategies();
-  
+
   app.use(passport.initialize());
   app.use(passport.session());
 
@@ -104,8 +112,20 @@ export async function setupAuth(app: Express) {
     }
   };
 
-  passport.serializeUser((user: Express.User, cb) => cb(null, user));
-  passport.deserializeUser((user: Express.User, cb) => cb(null, user));
+  passport.serializeUser((user: any, cb) => {
+    // Store only the user ID in the session
+    const id = user.id || user.claims?.sub;
+    cb(null, id);
+  });
+
+  passport.deserializeUser(async (id: string, cb) => {
+    try {
+      const user = await authStorage.getUser(id);
+      cb(null, user);
+    } catch (err) {
+      cb(err);
+    }
+  });
 
   app.get("/api/login", (req, res, next) => {
     ensureStrategy(req.hostname);
@@ -138,7 +158,7 @@ export async function setupAuth(app: Express) {
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
   const user = req.user as any;
 
-  if (!req.isAuthenticated() || !user.expires_at) {
+  if (!req.isAuthenticated() || !user) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 

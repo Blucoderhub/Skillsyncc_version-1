@@ -7,8 +7,8 @@ import { isAuthenticated } from "./replitAuth";
 export function registerMultiAuthRoutes(app: Express): void {
   // Google OAuth routes
   app.get("/api/auth/google", passport.authenticate("google"));
-  
-  app.get("/api/auth/google/callback", 
+
+  app.get("/api/auth/google/callback",
     passport.authenticate("google", {
       successReturnToOrRedirect: "/",
       failureRedirect: "/login?error=auth_failed"
@@ -17,8 +17,8 @@ export function registerMultiAuthRoutes(app: Express): void {
 
   // GitHub OAuth routes
   app.get("/api/auth/github", passport.authenticate("github"));
-  
-  app.get("/api/auth/github/callback", 
+
+  app.get("/api/auth/github/callback",
     passport.authenticate("github", {
       successReturnToOrRedirect: "/",
       failureRedirect: "/login?error=auth_failed"
@@ -27,8 +27,8 @@ export function registerMultiAuthRoutes(app: Express): void {
 
   // LinkedIn OAuth routes
   app.get("/api/auth/linkedin", passport.authenticate("linkedin"));
-  
-  app.get("/api/auth/linkedin/callback", 
+
+  app.get("/api/auth/linkedin/callback",
     passport.authenticate("linkedin", {
       successReturnToOrRedirect: "/",
       failureRedirect: "/login?error=auth_failed"
@@ -37,8 +37,8 @@ export function registerMultiAuthRoutes(app: Express): void {
 
   // Azure AD OAuth routes
   app.get("/api/auth/azuread", passport.authenticate("azuread-openidconnect"));
-  
-  app.post("/api/auth/azuread/callback", 
+
+  app.post("/api/auth/azuread/callback",
     passport.authenticate("azuread-openidconnect", {
       successReturnToOrRedirect: "/",
       failureRedirect: "/login?error=auth_failed"
@@ -49,7 +49,7 @@ export function registerMultiAuthRoutes(app: Express): void {
   app.post("/api/auth/register", async (req, res) => {
     try {
       const { email, password, firstName, lastName } = req.body;
-      
+
       if (!email || !password) {
         return res.status(400).json({ error: "Email and password are required" });
       }
@@ -100,7 +100,7 @@ export function registerMultiAuthRoutes(app: Express): void {
       email: true,
       replit: !!process.env.REPL_ID
     };
-    
+
     res.json(providers);
   });
 
@@ -108,8 +108,8 @@ export function registerMultiAuthRoutes(app: Express): void {
   app.post("/api/auth/update-password", isAuthenticated, async (req: any, res) => {
     try {
       const { currentPassword, newPassword } = req.body;
-      const userId = req.user.claims?.sub || req.user.id;
-      
+      const userId = req.user.id;
+
       if (!currentPassword || !newPassword) {
         return res.status(400).json({ error: "Current and new password are required" });
       }
@@ -127,7 +127,7 @@ export function registerMultiAuthRoutes(app: Express): void {
 
       // Update password
       await authStorage.updateUserPassword(userId, newPassword);
-      
+
       res.json({ message: "Password updated successfully" });
     } catch (error) {
       console.error("Password update error:", error);

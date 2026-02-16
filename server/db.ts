@@ -4,23 +4,27 @@ import * as schema from "@shared/schema";
 
 const { Pool } = pg;
 
-let dbInstance: any;
+const dbUrl = process.env.POSTGRES_URL || process.env.DATABASE_URL;
 
-// Vercel Postgres support (migrated to Neon)
-if (process.env.VERCEL && process.env.POSTGRES_URL) {
-  // Use Neon Postgres in production
+if (!dbUrl) {
+  throw new Error(
+    "DATABASE_URL or POSTGRES_URL must be set. " +
+    "Did you forget to add a PostgreSQL extension or set environment variables?",
+  );
+}
+
+let dbInstance;
+
+if (process.env.VERCEL || process.env.POSTGRES_URL?.includes("neon.tech")) {
+  // Use Neon Postgres in production/cloud
   const { neon } = require("@neondatabase/serverless");
   const { drizzle: neonDrizzle } = require("drizzle-orm/neon-http");
-  const sql = neon(process.env.POSTGRES_URL);
+  const sql = neon(dbUrl);
   dbInstance = neonDrizzle(sql, { schema });
-} else if (process.env.DATABASE_URL) {
-  // Use local PostgreSQL for development
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-  dbInstance = drizzle(pool, { schema });
 } else {
-  throw new Error(
-    "DATABASE_URL must be set for local development, or POSTGRES_URL for Vercel deployment.",
-  );
+  // Use local PostgreSQL for development
+  const pool = new Pool({ connectionString: dbUrl });
+  dbInstance = drizzle(pool, { schema });
 }
 
 export const db = dbInstance;

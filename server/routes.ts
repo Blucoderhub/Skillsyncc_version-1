@@ -21,7 +21,7 @@ const errorLoggingMiddleware = (app: Express) => {
       stackTrace: err.stack || null,
       endpoint: `${req.method} ${req.path}`,
       severity: res.statusCode >= 500 ? "critical" : "warning" as string,
-      userId: (req as any).user?.claims?.sub || null,
+      userId: (req as any).user?.id || null,
     };
 
     storage.logError(errorData).catch(console.error);
@@ -38,31 +38,31 @@ const isClubMember = async (req: Request, res: Response, next: NextFunction) => 
   if (!reqAny.isAuthenticated || !reqAny.isAuthenticated()) {
     return res.status(401).json({ error: "Authentication required" });
   }
-  
-  const userId = reqAny.user?.claims?.sub;
+
+  const userId = reqAny.user?.id;
   if (!userId) {
     return res.status(401).json({ error: "User not found" });
   }
-  
+
   try {
     const user = await storage.getUser(userId);
     if (!user) {
       return res.status(401).json({ error: "User not found" });
     }
-    
-    const isActive = user.membershipStatus === 'active' && 
-                     user.membershipTier && 
-                     ['club_monthly', 'club_yearly'].includes(user.membershipTier) &&
-                     (!user.membershipExpiresAt || new Date(user.membershipExpiresAt) > new Date());
-    
+
+    const isActive = user.membershipStatus === 'active' &&
+      user.membershipTier &&
+      ['club_monthly', 'club_yearly'].includes(user.membershipTier) &&
+      (!user.membershipExpiresAt || new Date(user.membershipExpiresAt) > new Date());
+
     if (!isActive) {
-      return res.status(403).json({ 
+      return res.status(403).json({
         error: "Club membership required",
         requiresUpgrade: true,
         message: "This feature requires an active Club membership. Please upgrade to access."
       });
     }
-    
+
     next();
   } catch (error) {
     console.error('Club membership check error:', error);
@@ -73,7 +73,7 @@ const isClubMember = async (req: Request, res: Response, next: NextFunction) => 
 const requireRole = (...roles: string[]) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     const reqAny = req as any;
-    const userId = reqAny.user?.claims?.sub;
+    const userId = reqAny.user?.id;
     if (!userId) {
       return res.status(401).json({ error: "Authentication required" });
     }
@@ -101,16 +101,16 @@ export async function registerRoutes(
   await setupAuth(app);
   registerAuthRoutes(app);
   registerMultiAuthRoutes(app);
-  
+
   // 2. Setup Stripe (initialize and register routes)
   await initStripe();
   registerStripeRoutes(app);
-  
+
   // 3. Setup AI Integrations
   registerChatRoutes(app);
   registerImageRoutes(app);
   registerAudioRoutes(app);
-  
+
   // 4. Setup Admin Routes
   registerAdminRoutes(app);
 
@@ -118,7 +118,7 @@ export async function registerRoutes(
   app.post("/api/user/role", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const reqAny = req as any;
-      const userId = reqAny.user?.claims?.sub;
+      const userId = reqAny.user?.id;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
 
       const { role, companyName, institution } = req.body;
@@ -143,7 +143,7 @@ export async function registerRoutes(
   app.get("/api/user/role", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const reqAny = req as any;
-      const userId = reqAny.user?.claims?.sub;
+      const userId = reqAny.user?.id;
       if (!userId) return res.status(401).json({ error: "Not authenticated" });
 
       const user = await storage.getUser(userId);
@@ -179,9 +179,9 @@ export async function registerRoutes(
   app.get(api.problems.list.path, async (req: any, res) => {
     const { category, difficulty, search } = req.query;
     const problems = await storage.getAllProblems({ category, difficulty, search });
-    
-    if (req.isAuthenticated && req.isAuthenticated() && req.user?.claims?.sub) {
-      const userId = req.user.claims.sub;
+
+    if (req.isAuthenticated && req.isAuthenticated() && req.user?.id) {
+      const userId = req.user.id;
       const problemsWithStatus = await Promise.all(
         problems.map(async (problem) => {
           const submissions = await storage.getUserSubmissions(userId, problem.id);
@@ -191,7 +191,7 @@ export async function registerRoutes(
       );
       return res.json(problemsWithStatus);
     }
-    
+
     res.json(problems.map(p => ({ ...p, isSolved: false })));
   });
 
@@ -206,21 +206,21 @@ export async function registerRoutes(
   app.get(api.problems.get.path, async (req: any, res) => {
     const problem = await storage.getProblemBySlug(req.params.slug as string);
     if (!problem) return res.status(404).json({ message: "Problem not found" });
-    
+
     let isSolved = false;
-    if (req.isAuthenticated && req.isAuthenticated() && req.user?.claims?.sub) {
-      const userId = req.user.claims.sub;
+    if (req.isAuthenticated && req.isAuthenticated() && req.user?.id) {
+      const userId = req.user.id;
       const submissions = await storage.getUserSubmissions(userId, problem.id);
       isSolved = submissions.some(s => s.status === "Passed");
     }
-    
+
     res.json({ ...problem, isSolved });
   });
 
   // Submit Code
   app.post(api.problems.submit.path, isAuthenticated, async (req, res) => {
     const problemId = parseInt(req.params.id as string);
-    const userId = (req.user as any).claims.sub;
+    const userId = (req.user as any).id;
     const { code, language } = req.body;
 
     const problem = await storage.getProblemById(problemId);
@@ -229,7 +229,7 @@ export async function registerRoutes(
     // Improved mock execution - check for basic patterns
     let passed = false;
     const codeLC = code.toLowerCase();
-    
+
     if (problem.slug.includes("hello-world") && (code.includes("print") || code.includes("console.log"))) {
       passed = codeLC.includes("hello") && codeLC.includes("world");
     } else if (problem.slug.includes("sum") && code.includes("return")) {
@@ -237,9 +237,9 @@ export async function registerRoutes(
     } else {
       passed = code.length > 20 && code.includes("return");
     }
-    
-    const output = passed 
-      ? "All Tests Passed!\nExecution Time: 0.05s\nMemory: 8.2 MB" 
+
+    const output = passed
+      ? "All Tests Passed!\nExecution Time: 0.05s\nMemory: 8.2 MB"
       : "Test Failed\nExpected output does not match\nTry checking your logic again.";
 
     await storage.createSubmission(userId, {
@@ -253,7 +253,7 @@ export async function registerRoutes(
     if (passed) {
       const prevSubmissions = await storage.getUserSubmissions(userId, problemId);
       const alreadySolved = prevSubmissions.filter(s => s.status === "Passed").length > 1;
-      
+
       if (!alreadySolved) {
         xpEarned = problem.xpReward;
         await storage.updateUserProgress(userId, xpEarned);
@@ -271,20 +271,20 @@ export async function registerRoutes(
 
   // User Stats
   app.get(api.user.stats.path, isAuthenticated, async (req, res) => {
-    const userId = (req.user as any).claims.sub;
+    const userId = (req.user as any).id;
     let stats = await storage.getUserProgress(userId);
-    
+
     if (!stats) {
       stats = await storage.initializeUserProgress(userId);
     }
-    
+
     res.json(stats);
   });
 
   // Leaderboard
   app.get(api.leaderboard.list.path, async (req, res) => {
     const leaderboardData = await storage.getLeaderboard(50);
-    
+
     const leaderboard = leaderboardData.map((entry, index) => ({
       rank: index + 1,
       userId: entry.userId,
@@ -294,7 +294,7 @@ export async function registerRoutes(
       solvedCount: entry.solvedCount || 0,
       badgeCount: 0,
     }));
-    
+
     res.json(leaderboard);
   });
 
@@ -317,7 +317,7 @@ export async function registerRoutes(
   });
 
   app.post(api.tutorials.completeLesson.path, isAuthenticated, async (req, res) => {
-    const userId = (req.user as any).claims.sub;
+    const userId = (req.user as any).id;
     const lessonId = parseInt(req.params.id as string);
     const result = await storage.completeLessonProgress(userId, lessonId);
     res.json({ success: true, xpEarned: result.xpEarned });
@@ -337,13 +337,13 @@ export async function registerRoutes(
     const id = parseInt(req.params.id as string);
     const discussion = await storage.getDiscussionById(id);
     if (!discussion) return res.status(404).json({ message: "Discussion not found" });
-    
+
     const answersList = await storage.getAnswersForDiscussion(id);
     const answersWithAuthors = answersList.map(a => ({
       ...a,
       authorName: `User${a.userId.slice(-4)}`,
     }));
-    
+
     res.json({
       ...discussion,
       authorName: `User${discussion.userId.slice(-4)}`,
@@ -352,13 +352,13 @@ export async function registerRoutes(
   });
 
   app.post(api.discussions.create.path, isAuthenticated, async (req, res) => {
-    const userId = (req.user as any).claims.sub;
+    const userId = (req.user as any).id;
     const discussion = await storage.createDiscussion(userId, req.body);
     res.json(discussion);
   });
 
   app.post(api.discussions.answer.path, isAuthenticated, async (req, res) => {
-    const userId = (req.user as any).claims.sub;
+    const userId = (req.user as any).id;
     const discussionId = parseInt(req.params.id as string);
     const { content } = req.body;
     await storage.createAnswer(userId, discussionId, content);
@@ -366,7 +366,7 @@ export async function registerRoutes(
   });
 
   app.post(api.discussions.vote.path, isAuthenticated, async (req, res) => {
-    const userId = (req.user as any).claims.sub;
+    const userId = (req.user as any).id;
     const discussionId = parseInt(req.params.id as string);
     const { value } = req.body;
     const newCount = await storage.voteDiscussion(userId, discussionId, value);
@@ -380,7 +380,7 @@ export async function registerRoutes(
   });
 
   app.get(api.badges.userBadges.path, isAuthenticated, async (req, res) => {
-    const userId = (req.user as any).claims.sub;
+    const userId = (req.user as any).id;
     const userBadgesList = await storage.getUserBadges(userId);
     res.json(userBadgesList);
   });
@@ -397,52 +397,52 @@ export async function registerRoutes(
 
   // Get user's certificates (Club members only)
   app.get("/api/certificates", isAuthenticated, isClubMember, async (req, res) => {
-    const userId = (req as any).user.claims.sub;
+    const userId = (req as any).user.id;
     const certificates = await storage.getUserCertificates(userId);
     res.json(certificates);
   });
 
   // Issue a certificate (Club members only, after course completion)
   app.post("/api/certificates", isAuthenticated, isClubMember, async (req, res) => {
-    const userId = (req as any).user.claims.sub;
+    const userId = (req as any).user.id;
     const { tutorialId, tutorialTitle } = req.body;
-    
+
     if (!tutorialId || !tutorialTitle) {
       return res.status(400).json({ error: "Tutorial ID and title required" });
     }
-    
+
     // Check if certificate already exists
     const existingCerts = await storage.getUserCertificates(userId);
     if (existingCerts.some(c => c.tutorialId === tutorialId)) {
       return res.status(400).json({ error: "Certificate already issued for this course" });
     }
-    
+
     const certificate = await storage.createCertificate({
       userId,
       tutorialId,
       title: `${tutorialTitle} Certificate`,
       issuedAt: new Date(),
     });
-    
+
     res.json(certificate);
   });
 
   // Get user's portfolio projects (Club members only)
   app.get("/api/portfolio", isAuthenticated, isClubMember, async (req, res) => {
-    const userId = (req as any).user.claims.sub;
+    const userId = (req as any).user.id;
     const projects = await storage.getUserProjects(userId);
     res.json(projects);
   });
 
   // Create a portfolio project (Club members only)
   app.post("/api/portfolio", isAuthenticated, isClubMember, async (req, res) => {
-    const userId = (req as any).user.claims.sub;
+    const userId = (req as any).user.id;
     const { title, description, techStack, liveUrl, repoUrl, imageUrl } = req.body;
-    
+
     if (!title || !description) {
       return res.status(400).json({ error: "Title and description required" });
     }
-    
+
     const project = await storage.createProject({
       userId,
       title,
@@ -453,16 +453,16 @@ export async function registerRoutes(
       imageUrl: imageUrl || null,
       isPublic: true,
     });
-    
+
     res.json(project);
   });
 
   // Update a portfolio project (Club members only)
   app.patch("/api/portfolio/:id", isAuthenticated, isClubMember, async (req, res) => {
-    const userId = (req as any).user.claims.sub;
+    const userId = (req as any).user.id;
     const projectId = parseInt(req.params.id as string);
     const { title, description, techStack, liveUrl, repoUrl, imageUrl, isPublic } = req.body;
-    
+
     const project = await storage.getProjectById(projectId);
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
@@ -470,25 +470,25 @@ export async function registerRoutes(
     if (project.userId !== userId) {
       return res.status(403).json({ error: "Not authorized to edit this project" });
     }
-    
+
     const updated = await storage.updateProject(projectId, {
-      title, 
-      description, 
-      tags: techStack, 
-      demoUrl: liveUrl, 
-      repoUrl, 
-      imageUrl, 
+      title,
+      description,
+      tags: techStack,
+      demoUrl: liveUrl,
+      repoUrl,
+      imageUrl,
       visibility: isPublic ? 'public' : 'private'
     });
-    
+
     res.json(updated);
   });
 
   // Delete a portfolio project (Club members only)
   app.delete("/api/portfolio/:id", isAuthenticated, isClubMember, async (req, res) => {
-    const userId = (req as any).user.claims.sub;
+    const userId = (req as any).user.id;
     const projectId = parseInt(req.params.id as string);
-    
+
     const project = await storage.getProjectById(projectId);
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
@@ -496,7 +496,7 @@ export async function registerRoutes(
     if (project.userId !== userId) {
       return res.status(403).json({ error: "Not authorized to delete this project" });
     }
-    
+
     await storage.deleteProject(projectId);
     res.json({ success: true });
   });
@@ -519,19 +519,19 @@ export async function registerRoutes(
 
   // Submit to a monthly challenge (Club members only)
   app.post("/api/challenges/:id/submit", isAuthenticated, isClubMember, async (req, res) => {
-    const userId = (req as any).user.claims.sub;
+    const userId = (req as any).user.id;
     const challengeId = parseInt(req.params.id as string);
     const { projectUrl, description } = req.body;
-    
+
     const challenge = await storage.getMonthlyChallengeById(challengeId);
     if (!challenge) {
       return res.status(404).json({ error: "Challenge not found" });
     }
-    
+
     if (challenge.endDate && new Date() > new Date(challenge.endDate)) {
       return res.status(400).json({ error: "Challenge submission period has ended" });
     }
-    
+
     const submission = await storage.createChallengeSubmission({
       userId,
       challengeId,
@@ -539,13 +539,13 @@ export async function registerRoutes(
       description,
       submittedAt: new Date(),
     });
-    
+
     res.json(submission);
   });
 
   // Get user's challenge submissions
   app.get("/api/challenges/:id/submissions", isAuthenticated, async (req, res) => {
-    const userId = (req as any).user.claims.sub;
+    const userId = (req as any).user.id;
     const challengeId = parseInt(req.params.id as string);
     const submissions = await storage.getUserChallengeSubmissions(userId, challengeId);
     res.json(submissions);
@@ -560,7 +560,7 @@ export async function registerRoutes(
   // ==========================================
 
   app.get("/api/organizations", isAuthenticated, async (req: Request, res: Response) => {
-    const userId = (req as any).user?.claims?.sub;
+    const userId = (req as any).user?.id;
     const orgs = await storage.getUserOrganizations(userId);
     res.json(orgs);
   });
@@ -579,15 +579,15 @@ export async function registerRoutes(
   });
 
   app.post("/api/organizations", isAuthenticated, requireRole("corporate"), async (req: Request, res: Response) => {
-    const userId = (req as any).user?.claims?.sub;
+    const userId = (req as any).user?.id;
     const { name, description, website, industry, countryCode, logoUrl } = req.body;
-    
+
     if (!name) return res.status(400).json({ error: "Organization name is required" });
-    
+
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     const existing = await storage.getOrganizationBySlug(slug);
     if (existing) return res.status(400).json({ error: "Organization name already taken" });
-    
+
     const org = await storage.createOrganization({
       name,
       slug,
@@ -602,28 +602,28 @@ export async function registerRoutes(
   });
 
   app.patch("/api/organizations/:id", isAuthenticated, requireRole("corporate"), async (req: Request, res: Response) => {
-    const userId = (req as any).user?.claims?.sub;
+    const userId = (req as any).user?.id;
     const id = parseInt(req.params.id as string);
-    
+
     const role = await storage.getOrgMemberRole(id, userId);
     if (!role || !['owner', 'admin'].includes(role)) {
       return res.status(403).json({ error: "Not authorized to update this organization" });
     }
-    
+
     const { name, description, website, industry, logoUrl } = req.body;
     const org = await storage.updateOrganization(id, { name, description, website, industry, logoUrl });
     res.json(org);
   });
 
   app.delete("/api/organizations/:id", isAuthenticated, async (req: Request, res: Response) => {
-    const userId = (req as any).user?.claims?.sub;
+    const userId = (req as any).user?.id;
     const id = parseInt(req.params.id as string);
-    
+
     const role = await storage.getOrgMemberRole(id, userId);
     if (role !== 'owner') {
       return res.status(403).json({ error: "Only the owner can delete an organization" });
     }
-    
+
     await storage.deleteOrganization(id);
     res.json({ success: true });
   });
@@ -635,38 +635,38 @@ export async function registerRoutes(
   });
 
   app.post("/api/organizations/:id/members", isAuthenticated, requireRole("corporate"), async (req: Request, res: Response) => {
-    const currentUserId = (req as any).user?.claims?.sub;
+    const currentUserId = (req as any).user?.id;
     const orgId = parseInt(req.params.id as string);
-    
+
     const role = await storage.getOrgMemberRole(orgId, currentUserId);
     if (!role || !['owner', 'admin'].includes(role)) {
       return res.status(403).json({ error: "Not authorized to add members" });
     }
-    
+
     const { userId, memberRole } = req.body;
     if (!userId) return res.status(400).json({ error: "User ID is required" });
-    
+
     const existingRole = await storage.getOrgMemberRole(orgId, userId);
     if (existingRole) return res.status(400).json({ error: "User is already a member" });
-    
+
     const member = await storage.addOrgMember(orgId, userId, memberRole || 'member');
     res.json(member);
   });
 
   app.delete("/api/organizations/:id/members/:userId", isAuthenticated, requireRole("corporate"), async (req: Request, res: Response) => {
-    const currentUserId = (req as any).user?.claims?.sub;
+    const currentUserId = (req as any).user?.id;
     const orgId = parseInt(req.params.id as string);
     const targetUserId = req.params.userId as string;
-    
+
     const role = await storage.getOrgMemberRole(orgId, currentUserId);
     if (!role || !['owner', 'admin'].includes(role)) {
       return res.status(403).json({ error: "Not authorized to remove members" });
     }
-    
+
     if (targetUserId === currentUserId && role === 'owner') {
       return res.status(400).json({ error: "Owner cannot remove themselves" });
     }
-    
+
     await storage.removeOrgMember(orgId, targetUserId);
     res.json({ success: true });
   });
@@ -690,32 +690,32 @@ export async function registerRoutes(
     const id = parseInt(req.params.id as string);
     const hackathon = await storage.getHackathonById(id);
     if (!hackathon) return res.status(404).json({ error: "Hackathon not found" });
-    
+
     const regCount = await storage.getHackathonRegistrationCount(id);
     const teams = await storage.getHackathonTeams(id);
     const criteria = await storage.getJudgingCriteria(id);
-    
+
     res.json({ ...hackathon, registrationCount: regCount, teams, judgingCriteria: criteria });
   });
 
   app.post("/api/hosted-hackathons", isAuthenticated, requireRole("corporate"), async (req: Request, res: Response) => {
-    const userId = (req as any).user?.claims?.sub;
-    const { 
+    const userId = (req as any).user?.id;
+    const {
       title, description, startDate, endDate, registrationDeadline,
       maxParticipants, prizePool, rules, hostOrgId, tags, imageUrl, url
     } = req.body;
-    
+
     if (!title || !description || !startDate || !endDate) {
       return res.status(400).json({ error: "Title, description, start date, and end date are required" });
     }
-    
+
     if (hostOrgId) {
       const role = await storage.getOrgMemberRole(hostOrgId, userId);
       if (!role || !['owner', 'admin'].includes(role)) {
         return res.status(403).json({ error: "Not authorized to create hackathons for this organization" });
       }
     }
-    
+
     const hackathon = await storage.createHostedHackathon({
       title,
       description,
@@ -738,12 +738,12 @@ export async function registerRoutes(
   });
 
   app.patch("/api/hosted-hackathons/:id", isAuthenticated, requireRole("corporate"), async (req: Request, res: Response) => {
-    const userId = (req as any).user?.claims?.sub;
+    const userId = (req as any).user?.id;
     const id = parseInt(req.params.id as string);
-    
+
     const hackathon = await storage.getHackathonById(id);
     if (!hackathon) return res.status(404).json({ error: "Hackathon not found" });
-    
+
     if (hackathon.createdBy !== userId) {
       if (hackathon.hostOrgId) {
         const role = await storage.getOrgMemberRole(hackathon.hostOrgId, userId);
@@ -754,46 +754,46 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Not authorized" });
       }
     }
-    
+
     const updated = await storage.updateHostedHackathon(id, req.body);
     res.json(updated);
   });
 
   // Registration
   app.post("/api/hosted-hackathons/:id/register", isAuthenticated, async (req: Request, res: Response) => {
-    const userId = (req as any).user?.claims?.sub;
+    const userId = (req as any).user?.id;
     const hackathonId = parseInt(req.params.id as string);
-    
+
     const hackathon = await storage.getHackathonById(hackathonId);
     if (!hackathon) return res.status(404).json({ error: "Hackathon not found" });
-    
+
     if (hackathon.registrationDeadline && new Date() > new Date(hackathon.registrationDeadline)) {
       return res.status(400).json({ error: "Registration deadline has passed" });
     }
-    
+
     if (hackathon.maxParticipants) {
       const regCount = await storage.getHackathonRegistrationCount(hackathonId);
       if (regCount >= hackathon.maxParticipants) {
         return res.status(400).json({ error: "Hackathon is full" });
       }
     }
-    
+
     const existing = await storage.getUserHackathonRegistration(hackathonId, userId);
     if (existing) return res.status(400).json({ error: "Already registered" });
-    
+
     const reg = await storage.registerForHackathon(hackathonId, userId);
     res.json(reg);
   });
 
   app.get("/api/hosted-hackathons/:id/registration", isAuthenticated, async (req: Request, res: Response) => {
-    const userId = (req as any).user?.claims?.sub;
+    const userId = (req as any).user?.id;
     const hackathonId = parseInt(req.params.id as string);
     const reg = await storage.getUserHackathonRegistration(hackathonId, userId);
     res.json({ registered: !!reg, registration: reg || null });
   });
 
   app.delete("/api/hosted-hackathons/:id/register", isAuthenticated, async (req: Request, res: Response) => {
-    const userId = (req as any).user?.claims?.sub;
+    const userId = (req as any).user?.id;
     const hackathonId = parseInt(req.params.id as string);
     await storage.withdrawFromHackathon(hackathonId, userId);
     res.json({ success: true });
@@ -807,15 +807,15 @@ export async function registerRoutes(
 
   // Teams
   app.post("/api/hosted-hackathons/:id/teams", isAuthenticated, async (req: Request, res: Response) => {
-    const userId = (req as any).user?.claims?.sub;
+    const userId = (req as any).user?.id;
     const hackathonId = parseInt(req.params.id as string);
     const { name } = req.body;
-    
+
     if (!name) return res.status(400).json({ error: "Team name is required" });
-    
+
     const reg = await storage.getUserHackathonRegistration(hackathonId, userId);
     if (!reg) return res.status(400).json({ error: "Must be registered to create a team" });
-    
+
     const team = await storage.createTeam(hackathonId, name, userId);
     res.json(team);
   });
@@ -827,21 +827,21 @@ export async function registerRoutes(
   });
 
   app.post("/api/teams/:teamId/members", isAuthenticated, async (req: Request, res: Response) => {
-    const userId = (req as any).user?.claims?.sub;
+    const userId = (req as any).user?.id;
     const teamId = parseInt(req.params.teamId as string);
-    
+
     const team = await storage.getTeamById(teamId);
     if (!team) return res.status(404).json({ error: "Team not found" });
-    
+
     const reg = await storage.getUserHackathonRegistration(team.hackathonId, userId);
     if (!reg) return res.status(400).json({ error: "Must be registered for the hackathon" });
-    
+
     const member = await storage.addTeamMember(teamId, userId);
     res.json(member);
   });
 
   app.delete("/api/teams/:teamId/members", isAuthenticated, async (req: Request, res: Response) => {
-    const userId = (req as any).user?.claims?.sub;
+    const userId = (req as any).user?.id;
     const teamId = parseInt(req.params.teamId as string);
     await storage.removeTeamMember(teamId, userId);
     res.json({ success: true });
@@ -849,17 +849,17 @@ export async function registerRoutes(
 
   // Submissions
   app.post("/api/hosted-hackathons/:id/submissions", isAuthenticated, async (req: Request, res: Response) => {
-    const userId = (req as any).user?.claims?.sub;
+    const userId = (req as any).user?.id;
     const hackathonId = parseInt(req.params.id as string);
     const { title, description, repoUrl, demoUrl, videoUrl, teamId } = req.body;
-    
+
     if (!title || !description) {
       return res.status(400).json({ error: "Title and description are required" });
     }
-    
+
     const reg = await storage.getUserHackathonRegistration(hackathonId, userId);
     if (!reg) return res.status(400).json({ error: "Must be registered to submit" });
-    
+
     const submission = await storage.createHackathonSubmission({
       hackathonId,
       userId,
@@ -881,19 +881,19 @@ export async function registerRoutes(
 
   // Judging
   app.post("/api/hosted-hackathons/:id/criteria", isAuthenticated, requireRole("corporate"), async (req: Request, res: Response) => {
-    const userId = (req as any).user?.claims?.sub;
+    const userId = (req as any).user?.id;
     const hackathonId = parseInt(req.params.id as string);
-    
+
     const hackathon = await storage.getHackathonById(hackathonId);
     if (!hackathon) return res.status(404).json({ error: "Hackathon not found" });
-    
+
     if (hackathon.createdBy !== userId && hackathon.hostOrgId) {
       const role = await storage.getOrgMemberRole(hackathon.hostOrgId, userId);
       if (!role || !['owner', 'admin'].includes(role)) {
         return res.status(403).json({ error: "Not authorized" });
       }
     }
-    
+
     const { name, description, weight, maxScore } = req.body;
     const criterion = await storage.createJudgingCriterion(hackathonId, name, description || '', weight || 1, maxScore || 10);
     res.json(criterion);
@@ -906,14 +906,14 @@ export async function registerRoutes(
   });
 
   app.post("/api/submissions/:submissionId/score", isAuthenticated, requireRole("corporate"), async (req: Request, res: Response) => {
-    const userId = (req as any).user?.claims?.sub;
+    const userId = (req as any).user?.id;
     const submissionId = parseInt(req.params.submissionId as string);
     const { criterionId, score, comment } = req.body;
-    
+
     if (!criterionId || score === undefined) {
       return res.status(400).json({ error: "Criterion ID and score are required" });
     }
-    
+
     const result = await storage.submitJudgingScore({
       submissionId,
       judgeUserId: userId,
@@ -973,7 +973,7 @@ export async function registerRoutes(
   });
 
   app.post("/api/cms/content", isAuthenticated, requireRole("admin"), async (req: Request, res: Response) => {
-    const userId = (req as any).user?.claims?.sub;
+    const userId = (req as any).user?.id;
     const { title, contentType, templateType, contentJson, category, subCategory, tags, difficultyLevel, estimatedMinutes, metaTitle, metaDescription, isPremium, status } = req.body;
 
     if (!title || !contentJson) {
@@ -1008,7 +1008,7 @@ export async function registerRoutes(
   });
 
   app.patch("/api/cms/content/:id", isAuthenticated, requireRole("admin"), async (req: Request, res: Response) => {
-    const userId = (req as any).user?.claims?.sub;
+    const userId = (req as any).user?.id;
     const id = parseInt(req.params.id as string);
     const { contentJson, isAutoSave, changeLog, ...updates } = req.body;
 
@@ -1049,7 +1049,7 @@ export async function registerRoutes(
   });
 
   app.post("/api/cms/content/:id/restore/:versionNumber", isAuthenticated, requireRole("admin"), async (req: Request, res: Response) => {
-    const userId = (req as any).user?.claims?.sub;
+    const userId = (req as any).user?.id;
     const id = parseInt(req.params.id as string);
     const versionNumber = parseInt(req.params.versionNumber as string);
 
@@ -1453,11 +1453,11 @@ async function seedDatabase() {
     { tutorialSlug: "python-basics", slug: "conditionals", title: "If Statements", content: "Make decisions in your code with conditionals.\n\n## If Statement\n```python\nif condition:\n    # do something\nelif another_condition:\n    # do something else\nelse:\n    # default action\n```", codeExample: "age = 18\nif age >= 18:\n    print('Adult')\nelse:\n    print('Minor')", order: 2, xpReward: 50 },
     { tutorialSlug: "python-basics", slug: "loops", title: "Loops", content: "Repeat actions with loops.\n\n## For Loop\n```python\nfor i in range(5):\n    print(i)\n```\n\n## While Loop\n```python\nwhile condition:\n    # repeat\n```", codeExample: "for i in range(1, 6):\n    print(f'Count: {i}')", order: 3, xpReward: 50 },
     { tutorialSlug: "python-basics", slug: "functions", title: "Functions", content: "Create reusable code with functions.\n\n```python\ndef greet(name):\n    return f'Hello, {name}!'\n\nresult = greet('World')\n```", codeExample: "def add(a, b):\n    return a + b\n\nprint(add(3, 5))", order: 4, xpReward: 50 },
-    
+
     // HTML Essentials
     { tutorialSlug: "html-essentials", slug: "structure", title: "HTML Structure", content: "Learn the basic structure of an HTML document.\n\n```html\n<!DOCTYPE html>\n<html>\n<head>\n  <title>Page Title</title>\n</head>\n<body>\n  <h1>Heading</h1>\n  <p>Paragraph</p>\n</body>\n</html>\n```", codeExample: "<!DOCTYPE html>\n<html>\n<head><title>My Page</title></head>\n<body><h1>Hello!</h1></body>\n</html>", order: 1, xpReward: 50, language: "html" },
     { tutorialSlug: "html-essentials", slug: "elements", title: "HTML Elements", content: "Common HTML elements:\n- **Headings**: h1-h6\n- **Paragraph**: p\n- **Links**: a\n- **Images**: img\n- **Lists**: ul, ol, li", codeExample: "<ul>\n  <li>Item 1</li>\n  <li>Item 2</li>\n</ul>", order: 2, xpReward: 50, language: "html" },
-    
+
     // JavaScript Intro
     { tutorialSlug: "javascript-intro", slug: "basics", title: "JS Basics", content: "JavaScript variables and console output.\n\n```javascript\nlet name = 'Alice';\nconst PI = 3.14;\nconsole.log(name);\n```", codeExample: "let greeting = 'Hello World';\nconsole.log(greeting);", order: 1, xpReward: 50, language: "javascript" },
     { tutorialSlug: "javascript-intro", slug: "dom", title: "DOM Manipulation", content: "Interact with HTML elements.\n\n```javascript\ndocument.getElementById('myId');\ndocument.querySelector('.class');\n```", codeExample: "document.body.style.backgroundColor = 'lightblue';", order: 2, xpReward: 50, language: "javascript" },
