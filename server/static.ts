@@ -6,23 +6,26 @@ export function serveStatic(app: Express) {
   // In production bundle, __dirname is where index.cjs is (the dist folder)
   // Static files are in the public/ folder next to it.
   const distPath = path.resolve(__dirname, "public");
+  const fallbackPath = path.resolve(process.cwd(), "dist", "public");
 
-  console.log(`[static] Serving from: ${distPath}`);
+  console.log(`[static] Default serving from: ${distPath}`);
+  console.log(`[static] Fallback serving from: ${fallbackPath}`);
   console.log(`[static] Current directory (__dirname): ${__dirname}`);
   console.log(`[static] Working directory (cwd): ${process.cwd()}`);
 
+  let staticPath = distPath;
   if (!fs.existsSync(distPath)) {
-    console.warn(`[static] Static directory not found: ${distPath}`);
-    // Fallback search
-    const fallbackPath = path.resolve(process.cwd(), "dist", "public");
+    console.warn(`[static] Default static directory not found: ${distPath}`);
     if (fs.existsSync(fallbackPath)) {
-      console.log(`[static] Found fallback at: ${fallbackPath}`);
-      return serveFromPath(app, fallbackPath);
+      console.log(`[static] Using fallback path: ${fallbackPath}`);
+      staticPath = fallbackPath;
+    } else {
+      console.error(`[static] CRITICAL: No static directory found!`);
+      return;
     }
-    return;
   }
 
-  return serveFromPath(app, distPath);
+  return serveFromPath(app, staticPath);
 }
 
 function serveFromPath(app: Express, staticPath: string) {
