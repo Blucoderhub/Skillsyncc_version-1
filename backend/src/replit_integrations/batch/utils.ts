@@ -132,7 +132,7 @@ export async function batchProcess<T, R>(
 export async function batchProcessWithSSE<T, R>(
   items: T[],
   processor: (item: T, index: number) => Promise<R>,
-  sendEvent: (event: { type: string; [key: string]: unknown }) => void,
+  sendEvent: (event: { type: string;[key: string]: unknown }) => void,
   options: Omit<BatchOptions, "concurrency" | "onProgress"> = {}
 ): Promise<R[]> {
   const { retries = 5, minTimeout = 1000, maxTimeout = 15000 } = options;
@@ -154,7 +154,7 @@ export async function batchProcessWithSSE<T, R>(
           minTimeout,
           maxTimeout,
           factor: 2,
-          onFailedAttempt: (error) => {
+          onFailedAttempt: (error: any) => {
             if (!isRateLimitError(error)) {
               throw new AbortError(
                 error instanceof Error ? error : new Error(String(error))
