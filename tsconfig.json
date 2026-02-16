@@ -8,7 +8,9 @@
     "node_modules",
     "build",
     "dist",
-    "**/*.test.ts"
+    "**/*.test.ts",
+    "backend",
+    "server"
   ],
   "compilerOptions": {
     "incremental": true,
