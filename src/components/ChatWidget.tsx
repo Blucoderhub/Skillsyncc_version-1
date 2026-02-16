@@ -1,6 +1,15 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { MessageCircle, X, Send, Mic, Square, ChevronDown, Sparkles, GraduationCap, Lightbulb, Bug, HelpCircle, SearchCode, RotateCcw } from "lucide-react";
-import { useVoiceRecorder, useVoiceStream } from "../../replit_integrations/audio";
+// Replit integrations removed for Vercel deployment
+const useVoiceRecorder = () => ({
+  state: "inactive",
+  startRecording: async () => console.warn("Voice recording not supported in this build"),
+  stopRecording: async () => new Blob(),
+});
+
+const useVoiceStream = (_callbacks: any) => ({
+  streamVoiceResponse: async () => { },
+});
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
@@ -131,7 +140,7 @@ export function ChatWidget() {
   const [greetingLoaded, setGreetingLoaded] = useState(false);
   const [conversationId, setConversationId] = useState<number | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
+
   const recorder = useVoiceRecorder();
   const stream = useVoiceStream({
     onUserTranscript: (text) => {
@@ -163,7 +172,7 @@ export function ChatWidget() {
         setConversationId(data.id);
         return data.id;
       }
-    } catch {}
+    } catch { }
     setConversationId(1);
     return 1;
   }, [conversationId]);
@@ -212,20 +221,20 @@ export function ChatWidget() {
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
-    
+
     const userText = input.trim();
     setInput("");
     setIsLoading(true);
-    
+
     setMessages(prev => [...prev, { role: "user", text: userText }]);
     setMessages(prev => [...prev, { role: "assistant", text: "..." }]);
-    
+
     try {
       const convId = await ensureConversation();
       const response = await fetch(`/api/conversations/${convId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           content: userText,
           model: selectedModel.id,
           provider: selectedModel.provider,
@@ -233,22 +242,22 @@ export function ChatWidget() {
         }),
         credentials: "include"
       });
-      
+
       if (!response.ok) throw new Error("Failed to send message");
-      
+
       const reader = response.body?.getReader();
       if (!reader) throw new Error("No response body");
-      
+
       const decoder = new TextDecoder();
       let fullResponse = "";
-      
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        
+
         const chunk = decoder.decode(value, { stream: true });
         const lines = chunk.split("\n");
-        
+
         for (const line of lines) {
           if (!line.startsWith("data: ")) continue;
           try {
@@ -261,7 +270,7 @@ export function ChatWidget() {
                 return updated;
               });
             }
-          } catch {}
+          } catch { }
         }
       }
     } catch (err) {
@@ -275,7 +284,7 @@ export function ChatWidget() {
       setIsLoading(false);
     }
   };
-  
+
   const handleVoiceToggle = async () => {
     if (recorder.state === "recording") {
       const blob = await recorder.stopRecording();
@@ -304,9 +313,9 @@ export function ChatWidget() {
                   <span className="text-xs font-display text-foreground truncate">Syncc AI</span>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         className="h-6 px-1.5 text-[10px] gap-1"
                         data-testid="button-model-selector"
                       >
@@ -320,7 +329,7 @@ export function ChatWidget() {
                     <DropdownMenuContent align="start" className="w-48">
                       <DropdownMenuLabel className="text-xs">OpenAI</DropdownMenuLabel>
                       {MODELS.filter(m => m.provider === "openai").map(model => (
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           key={model.id}
                           onClick={() => setSelectedModel(model)}
                           className="gap-2"
@@ -333,7 +342,7 @@ export function ChatWidget() {
                       <DropdownMenuSeparator />
                       <DropdownMenuLabel className="text-xs">Anthropic</DropdownMenuLabel>
                       {MODELS.filter(m => m.provider === "anthropic").map(model => (
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           key={model.id}
                           onClick={() => setSelectedModel(model)}
                           className="gap-2"
@@ -346,7 +355,7 @@ export function ChatWidget() {
                       <DropdownMenuSeparator />
                       <DropdownMenuLabel className="text-xs">Google</DropdownMenuLabel>
                       {MODELS.filter(m => m.provider === "gemini").map(model => (
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           key={model.id}
                           onClick={() => setSelectedModel(model)}
                           className="gap-2"
@@ -370,7 +379,7 @@ export function ChatWidget() {
                   >
                     <RotateCcw className="w-3 h-3" />
                   </Button>
-                  <button 
+                  <button
                     onClick={() => setIsOpen(false)}
                     className="text-muted-foreground hover:text-foreground p-1"
                     data-testid="button-close-chat"
@@ -410,12 +419,12 @@ export function ChatWidget() {
 
             <div className="flex-1 overflow-y-auto p-3 space-y-3">
               {messages.map((msg, idx) => (
-                <div 
+                <div
                   key={idx}
                   className={cn(
                     "max-w-[90%] rounded-lg p-3 text-sm leading-relaxed",
-                    msg.role === "user" 
-                      ? "bg-primary text-primary-foreground ml-auto rounded-tr-none" 
+                    msg.role === "user"
+                      ? "bg-primary text-primary-foreground ml-auto rounded-tr-none"
                       : "bg-muted text-foreground mr-auto rounded-tl-none border border-border"
                   )}
                   data-testid={`message-${msg.role}-${idx}`}
@@ -442,8 +451,8 @@ export function ChatWidget() {
                   onClick={handleVoiceToggle}
                   className={cn(
                     "p-2 rounded-md transition-colors",
-                    recorder.state === "recording" 
-                      ? "bg-destructive text-destructive-foreground animate-pulse" 
+                    recorder.state === "recording"
+                      ? "bg-destructive text-destructive-foreground animate-pulse"
                       : "bg-muted hover:bg-muted/80 text-muted-foreground"
                   )}
                   data-testid="button-voice"
