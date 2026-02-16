@@ -2,11 +2,8 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
-import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
-import { registerMultiAuthRoutes } from "./replit_integrations/auth/multiAuthRoutes";
-import { registerChatRoutes } from "./replit_integrations/chat";
-import { registerImageRoutes } from "./replit_integrations/image";
-import { registerAudioRoutes } from "./replit_integrations/audio";
+import { setupAuth, registerAuthRoutes, isAuthenticated } from "./lib/auth";
+import { registerChatRoutes, registerImageRoutes, registerAudioRoutes } from "./lib/ai-stubs";
 import { registerAdminRoutes, isAdmin } from "./admin-routes";
 import { initStripe, registerStripeRoutes, registerStripeWebhookRoute } from "./stripe/stripeRoutes";
 import { z } from "zod";
@@ -100,7 +97,6 @@ export async function registerRoutes(
   // 1. Setup Auth
   await setupAuth(app);
   registerAuthRoutes(app);
-  registerMultiAuthRoutes(app);
 
   // 2. Setup Stripe (initialize and register routes)
   await initStripe();

@@ -1,24 +1,24 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { storage } from "./storage";
 import { z } from "zod";
-import { isAuthenticated } from "./replit_integrations/auth";
+import { isAuthenticated } from "./lib/auth";
 
 // Admin authorization middleware
 export async function isAdmin(req: Request, res: Response, next: NextFunction) {
   if (!req.isAuthenticated || !req.isAuthenticated()) {
     return res.status(401).json({ error: "Unauthorized" });
   }
-  
+
   const userId = (req.user as any)?.claims?.sub;
   if (!userId) {
     return res.status(401).json({ error: "Unauthorized" });
   }
-  
+
   const user = await storage.getUser(userId);
   if (!user?.isAdmin) {
     return res.status(403).json({ error: "Admin access required" });
   }
-  
+
   next();
 }
 
@@ -26,7 +26,7 @@ export function registerAdminRoutes(app: Express): void {
   // Check if current user is admin
   app.get("/api/admin/check", isAuthenticated, async (req, res) => {
     try {
-      const userId = (req.user as any)?.claims?.sub;
+      const userId = (req.user as any)?.id;
       const user = await storage.getUser(userId);
       res.json({ isAdmin: user?.isAdmin || false });
     } catch (error) {
@@ -36,7 +36,7 @@ export function registerAdminRoutes(app: Express): void {
   });
 
   // --- USER MANAGEMENT ---
-  
+
   app.get("/api/admin/users", isAuthenticated, isAdmin, async (req, res) => {
     try {
       const users = await storage.getAllUsers();
@@ -98,7 +98,7 @@ export function registerAdminRoutes(app: Express): void {
         xpReward: z.number().default(500),
         content: z.string().optional(),
       });
-      
+
       const data = tutorialSchema.parse(req.body);
       const tutorial = await storage.createTutorial(data);
       res.status(201).json(tutorial);
@@ -155,7 +155,7 @@ export function registerAdminRoutes(app: Express): void {
         order: z.number().default(0),
         xpReward: z.number().default(50),
       });
-      
+
       const data = lessonSchema.parse(req.body);
       const lesson = await storage.createLesson(data);
       res.status(201).json(lesson);
@@ -211,7 +211,7 @@ export function registerAdminRoutes(app: Express): void {
         imageUrl: z.string().optional(),
         tags: z.array(z.string()).optional(),
       });
-      
+
       const data = hackathonSchema.parse(req.body);
       const hackathon = await storage.createHackathon(data);
       res.status(201).json(hackathon);
@@ -266,7 +266,7 @@ export function registerAdminRoutes(app: Express): void {
         relevance: z.enum(["required", "recommended", "optional"]).default("recommended"),
         order: z.number().optional().default(0),
       });
-      
+
       const data = tutorialSchema.parse(req.body);
       const hackathonTutorial = await storage.createHackathonTutorial({
         hackathonId,
@@ -290,7 +290,7 @@ export function registerAdminRoutes(app: Express): void {
         relevance: z.enum(["required", "recommended", "optional"]).optional(),
         order: z.number().optional(),
       });
-      
+
       const data = updateSchema.parse(req.body);
       const hackathonTutorial = await storage.updateHackathonTutorial(hackathonId, tutorialId, data);
       res.json(hackathonTutorial);
@@ -344,10 +344,10 @@ export function registerAdminRoutes(app: Express): void {
       if (!submission) {
         return res.status(404).json({ error: "Submission not found" });
       }
-      
+
       const user = await storage.getUser(submission.userId);
       const problem = await storage.getProblemById(submission.problemId);
-      
+
       res.json({
         ...submission,
         userName: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.email || 'Unknown' : 'Unknown',
@@ -476,7 +476,7 @@ export function registerAdminRoutes(app: Express): void {
       const hackathons = await storage.getAllHackathons();
       const tutorials = await storage.getAllTutorials();
       const submissions = await storage.getAllSubmissions();
-      
+
       res.json({
         totalUsers: users.length,
         totalProblems: problems.length,

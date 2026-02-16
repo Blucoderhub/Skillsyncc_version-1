@@ -5,8 +5,8 @@ import { stripeService } from "./stripeService";
 import { getStripePublishableKey, getStripeSync } from "./stripeClient";
 import { WebhookHandlers } from "./webhookHandlers";
 import { storage } from "../storage";
-import { isAuthenticated } from "../replit_integrations/auth";
-import { runMigrations } from "stripe-replit-sync";
+import { isAuthenticated } from "../lib/auth";
+// import { runMigrations } from "stripe-replit-sync";
 
 export async function initStripe() {
   const databaseUrl = process.env.DATABASE_URL;
@@ -18,9 +18,11 @@ export async function initStripe() {
 
   try {
     console.log('Initializing Stripe schema...');
-    await runMigrations({ 
+    /*
+    await runMigrations({
       databaseUrl
     });
+    */
     console.log('Stripe schema ready');
 
     const stripeSync = await getStripeSync();
@@ -28,7 +30,7 @@ export async function initStripe() {
     console.log('Setting up managed webhook...');
     const domains = process.env.REPLIT_DOMAINS?.split(',');
     const webhookBaseUrl = domains?.[0] ? `https://${domains[0]}` : '';
-    
+
     if (webhookBaseUrl) {
       try {
         const result = await stripeSync.findOrCreateManagedWebhook(
@@ -98,9 +100,9 @@ export function registerStripeRoutes(app: Express) {
   // Get user subscription status
   app.get('/api/subscription', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any).id;
       const user = await storage.getUser(userId);
-      
+
       if (!user) {
         return res.status(404).json({ error: 'User not found' });
       }
@@ -121,7 +123,7 @@ export function registerStripeRoutes(app: Express) {
   // Create checkout session for Club membership
   app.post('/api/checkout', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any).id;
       const { priceId } = req.body;
 
       if (!priceId) {
@@ -147,7 +149,7 @@ export function registerStripeRoutes(app: Express) {
 
       const host = req.get('host');
       const protocol = req.protocol;
-      
+
       const session = await stripeService.createCheckoutSession(
         customerId,
         priceId,
@@ -166,7 +168,7 @@ export function registerStripeRoutes(app: Express) {
   // Create customer portal session for managing subscription
   app.post('/api/customer-portal', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user as any).id;
       const user = await storage.getUser(userId);
 
       if (!user?.stripeCustomerId) {
